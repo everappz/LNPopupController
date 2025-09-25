@@ -224,9 +224,16 @@ NS_SWIFT_UI_ACTOR
 /// The insets for the bottom docking view from bottom of the container controller's view. By default, this returns ` UIEdgeInsets.zero`. Currently, only the bottom inset is respected.
 ///
 /// The system calculates the position of the popup bar and the bottom docking view by summing the bottom docking view's height and the bottom of the insets.
+@property (nonatomic, readonly) UIEdgeInsets insetsForBottomDockingView LN_DEPRECATED_API_OS("No longer supported on iOS 26.0 and later.", ios(2.0, 26.0));
+
+/// Controls whether the framework manages the safe area of the container controller indirectly.
 ///
-/// @warning This API is experimental and will probably change in the future. Use with care.
-@property (nonatomic, readonly) UIEdgeInsets insetsForBottomDockingView;
+/// By default, the framework modifies the container controller's safe area insets directly, which in turn updates children. In some cases, such as when the container controller uses the safe area to position the bottom docking view (for example, a custom tab bar), it would be undesirable to modify the container controller's safe area insets directly. Instead, when this property returns `true`, the framework updates the container's children's safe areas instead.
+///
+/// If you have a very complex hierarchy of container controllers, you can set this property for your inner containers and it will be respected.
+///
+/// Defaults to `true` for `UITabBarController` and `UINavigationController` subclasses; `false` otherwise.
+@property (nonatomic, assign, readonly) BOOL requiresIndirectSafeAreaManagement;
 
 @end
 

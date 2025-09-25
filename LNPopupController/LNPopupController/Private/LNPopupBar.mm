@@ -88,6 +88,124 @@ CGFloat _LNPopupBarHeightForPopupBar(LNPopupBar* popupBar)
 	}
 }
 
+LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style, BOOL* isFloating, BOOL* isCompact, BOOL* isCustom)
+{
+	//Support the legacy floating style value.
+	if(style == (LNPopupBarStyle)3)
+	{
+		style = LNPopupBarStyleFloating;
+	}
+	
+	if(style == LNPopupBarStyleCustom)
+	{
+		if(isFloating)
+		{
+			*isFloating = LNPopupEnvironmentHasGlass();
+		}
+		if(isCompact)
+		{
+			*isCompact = NO;
+		}
+		if(isCustom)
+		{
+			*isCustom = YES;
+		}
+		return LNPopupBarStyleCustom;
+	}
+	
+	if(isCustom)
+	{
+		*isCustom = NO;
+	}
+	
+	LNPopupBarStyle rv = style;
+	
+	if(LNPopupEnvironmentHasGlass())
+	{
+		if(isFloating)
+		{
+			//iOS 26 with glass enabled is always floating.
+			*isFloating = YES;
+		}
+		
+		if(rv == LNPopupBarStyleDefault)
+		{
+			if(UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone)
+			{
+				rv = LNPopupBarStyleFloatingCompact;
+			}
+			else
+			{
+				rv = LNPopupBarStyleFloating;
+			}
+		}
+		
+		switch(rv) {
+			case LNPopupBarStyleCompact:
+			case LNPopupBarStyleFloatingCompact:
+				if(isCompact)
+				{
+					*isCompact = YES;
+				}
+				return LNPopupBarStyleFloatingCompact;
+			case LNPopupBarStyleProminent:
+			case LNPopupBarStyleFloating:
+				if(isCompact)
+				{
+					*isCompact = NO;
+				}
+				return LNPopupBarStyleFloating;
+			default:
+				abort();
+		}
+	}
+	
+	if(rv == LNPopupBarStyleDefault)
+	{
+		if(@available(iOS 17, *)) {
+			rv = LNPopupBarStyleFloating;
+		}
+		else
+		{
+			rv = LNPopupBarStyleProminent;
+		}
+	}
+	
+	BOOL isFlt;
+	switch(rv)
+	{
+		case LNPopupBarStyleFloating:
+		case LNPopupBarStyleFloatingCompact:
+			isFlt = YES;
+			break;
+		default:
+			isFlt = NO;
+			break;
+	}
+	if(isFloating)
+	{
+		*isFloating = isFlt;
+	}
+	
+	BOOL isCmp;
+	switch(rv)
+	{
+		case LNPopupBarStyleCompact:
+		case LNPopupBarStyleFloatingCompact:
+			isCmp = YES;
+			break;
+		default:
+			isCmp = NO;
+			break;
+	}
+	if(isCompact)
+	{
+		*isCompact = isCmp;
+	}
+	
+	return rv;
+}
+
 __attribute__((objc_direct_members))
 @implementation LNPopupBar
 {
@@ -521,8 +639,10 @@ static inline __attribute__((always_inline)) LNPopupBarProgressViewStyle _LNPopu
 			_contentView.effectView.clipsToBounds = YES;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 			if(@available(iOS 26.0, *))
-				_contentView.effectView.cornerConfiguration = [self.activeAppearance floatingBackgroundCornerConfigurationForCustomBar:_resolvedIsCustom];
-			_floatingBackgroundShadowView.cornerConfiguration = _contentView.effectView.cornerConfiguration;
+			{
+				_contentView.effectView.cornerConfiguration = [self.activeAppearance floatingBackgroundCornerConfigurationForCustomBar:_resolvedIsCustom barHeight:barHeight screen:self.window.screen wantsFullWidth:self.customBarWantsFullBarWidth margins:self.layoutMargins];
+				_floatingBackgroundShadowView.cornerConfiguration = _contentView.effectView.cornerConfiguration;
+			}
 #endif
 		}
 		else
@@ -1960,8 +2080,10 @@ static CGSize LNMakeSizeWithAspectRatioInsideSize(CGSize aspectRatio, CGSize siz
 	
 	[self _updateViewsAfterCustomBarViewControllerUpdate];
 	[self setBarStyle:_customBarViewController != nil ? LNPopupBarStyleCustom : LNPopupBarStyleDefault];
+	[self _appearanceDidChange];
 	
 	[self setNeedsLayout];
+	[self layoutIfNeeded];
 }
 
 - (void)setLeadingBarButtonItems:(NSArray<UIBarButtonItem*> *)leadingBarButtonItems

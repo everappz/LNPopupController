@@ -80,7 +80,7 @@ static const void* _LNPopupOpenCloseTransitionViewKey = &_LNPopupOpenCloseTransi
 		
 		if(_transitionView != nil)
 		{
-			objc_setAssociatedObject(self.transitionView.sourceView, _LNPopupOpenCloseTransitionViewKey, _transitionView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			objc_setAssociatedObject(self.transitionView.sourceLayer, _LNPopupOpenCloseTransitionViewKey, _transitionView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 		}
 	}];
 	
@@ -156,7 +156,10 @@ static const void* _LNPopupOpenCloseTransitionViewKey = &_LNPopupOpenCloseTransi
 	[animator addCompletion:^(UIViewAnimatingPosition finalPosition) {
 		if([self.view respondsToSelector:transitionDidEnd])
 		{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 			[self.view performSelector:transitionDidEnd];
+#pragma clang diagnostic pop
 		}
 		
 		[self completeTransition];
@@ -207,9 +210,9 @@ static const void* _LNPopupOpenCloseTransitionViewKey = &_LNPopupOpenCloseTransi
 - (void)completeTransition
 {
 	[UIView performWithoutAnimation:^{
-		UIView* transitionView = objc_getAssociatedObject(self.transitionView.sourceView, _LNPopupOpenCloseTransitionViewKey);
+		UIView* transitionView = objc_getAssociatedObject(self.transitionView.sourceLayer, _LNPopupOpenCloseTransitionViewKey);
 		[transitionView removeFromSuperview];
-		objc_setAssociatedObject(self.transitionView.sourceView, _LNPopupOpenCloseTransitionViewKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		objc_setAssociatedObject(self.transitionView.sourceLayer, _LNPopupOpenCloseTransitionViewKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 		self.popupBar.imageView.alpha = 1.0;
 		[self performAdditionalCompletion];
 	}];

@@ -89,7 +89,7 @@
 		
 		NSInteger idx = [self.tabBarController.viewControllers indexOfObject:target] + 1;
 		
-		if(idx != 4 || NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 26)
+		if(idx != 4 || self.navigationController == nil || NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 26)
 		{
 			//This is safe even with the UITab API, because this will be accessed very early on, when loaded from storyboard.
 			super.tabBarItem.image = [UIImage systemImageNamed:[NSString stringWithFormat:@"%lu.square.fill", idx]];
@@ -98,6 +98,8 @@
 		{
 			if(super.tabBarItem.tag != 1)
 			{
+				self.navigationItem.searchController = [UISearchController new];
+				
 				super.tabBarItem = [[UITabBarItem alloc] initWithTabBarSystemItem:UITabBarSystemItemSearch tag:1];
 				super.tabBarItem.image = [UIImage systemImageNamed:@"magnifyingglass"];
 				super.tabBarItem.title = NSLocalizedString(@"Search", @"");
@@ -220,13 +222,21 @@
 	}]];
 	_galleryButton.translatesAutoresizingMaskIntoConstraints = NO;
 	
+	NSLayoutConstraint* x = [self.view.safeAreaLayoutGuide.topAnchor constraintEqualToAnchor:_galleryButton.topAnchor constant:LNPopupSettingsHasOS26Glass() ? 6 : -1];
+	x.priority = UILayoutPriorityRequired - 10;
+	
 	[self.view addSubview:_galleryButton];
 	[NSLayoutConstraint activateConstraints:@[
 		[self.view.safeAreaLayoutGuide.trailingAnchor constraintEqualToAnchor:_galleryButton.trailingAnchor constant:LNPopupSettingsHasOS26Glass() ? 20 : 8],
-		[self.view.safeAreaLayoutGuide.topAnchor constraintEqualToAnchor:_galleryButton.topAnchor constant:LNPopupSettingsHasOS26Glass() ? 6 : -1],
+		x
 	]];
+	
 	if(LNPopupSettingsHasOS26Glass())
 	{
+		NSLayoutConstraint* y = [self.view.topAnchor constraintLessThanOrEqualToAnchor:_galleryButton.topAnchor constant:-10];
+		y.priority = UILayoutPriorityRequired;
+		y.active = YES;
+		
 		[NSLayoutConstraint activateConstraints:@[
 			[_galleryButton.widthAnchor constraintEqualToConstant:46],
 			[_galleryButton.heightAnchor constraintEqualToConstant:46],
@@ -275,6 +285,21 @@
 {
 	[super viewIsAppearing:animated];
 	
+	if(self.isInSearchTab)
+	{
+		self.navigationItem.title = self.navigationItem.searchController != nil ? NSLocalizedString(@"Search", @"") : NSLocalizedString(@"Search Result", @"");
+	
+		if([NSUserDefaults.settingDefaults boolForKey:PopupSettingDisableDemoSceneColors] == NO)
+		{
+			NSString* seed = [NSString stringWithFormat:@"%@%@", self.colorSeedString, self.colorSeedCount == 0 ? @"" : [NSString stringWithFormat:@"%@", @(self.colorSeedCount)]];
+			self.view.backgroundColor = LNSeedAdaptiveSubduedColor(seed);
+		}
+		else
+		{
+			self.view.backgroundColor = UIColor.systemBackgroundColor;
+		}
+	}
+	
 	[self updateBottomDockingViewEffectForBarPresentation];
 	
 	//Ugly hack to fix tab bar tint color.
@@ -319,18 +344,20 @@
 			traitCollection = self.traitCollection;
 		}
 		
+		BOOL canHaveSidebar = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad && traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassRegular;
+		
 		if(self.tabBarController != nil)
 		{
-			[self.navigationItem setHidesBackButton:self.tabBarController.sidebar.isHidden == NO];
+			[self.navigationItem setHidesBackButton:canHaveSidebar && self.tabBarController.sidebar.isHidden == NO];
 		}
 		
 		BOOL isFirst = [self.navigationController.viewControllers indexOfObject:self] == 0;
 		BOOL isTNil = self.tabBarController == nil;
 		BOOL isNNil = self.navigationController == nil;
-		BOOL canHaveSidebar = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad && traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassRegular;
+		BOOL isSNil = self.splitViewController == nil;
 		BOOL isSidebarHidden = self.tabBarController.sidebar.isHidden;
 		
-		_hideTabBarButton.hidden = isFirst == NO || isNNil || (!isTNil && canHaveSidebar && isSidebarHidden == NO);
+		_hideTabBarButton.hidden = isSNil == NO || isFirst == NO || isNNil || (!isTNil && canHaveSidebar && isSidebarHidden == NO);
 	}
 	else
 	{
@@ -345,17 +372,11 @@
 	}
 }
 
-- (void)viewWillLayoutSubviews
+- (void)viewDidLayoutSubviews
 {
-	[super viewWillLayoutSubviews];
+	[super viewDidLayoutSubviews];
 	
-	if(@available(iOS 18.0, *))
-	{
-		if(self.tabBarController != nil)
-		{
-			[self updateHideTabBarButtonHiddenStateForTraitCollection:self.traitCollection];
-		}
-	}
+	[self updateHideTabBarButtonHiddenStateForTraitCollection:self.traitCollection];
 }
 
 - (void)willTransitionToTraitCollection:(UITraitCollection *)newCollection withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
@@ -587,7 +608,7 @@
 	{
 		if(wantsGlassBackground)
 		{
-			targetVC.popupContentView.backgroundEffect = [UIGlassEffect effectWithStyle:UIGlassEffectStyleClear];
+			targetVC.popupContentView.backgroundEffect = [UIGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
 		}
 	}
 #endif
@@ -704,9 +725,24 @@
 #endif
 }
 
+- (BOOL)isInSearchTab
+{
+	BOOL rv = NO;
+	
+	if(@available(iOS 18.0, *))
+	{
+		if([self.tab isKindOfClass:UISearchTab.class])
+		{
+			rv = YES;
+		}
+	}
+	
+	return rv;
+}
+
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
-	segue.destinationViewController.hidesBottomBarWhenPushed =
+	segue.destinationViewController.hidesBottomBarWhenPushed = self.isInSearchTab == NO &&
 #if LNPOPUP
 	[NSUserDefaults.settingDefaults boolForKey:PopupSettingHidesBottomBarWhenPushed];
 #else

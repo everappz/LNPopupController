@@ -27,9 +27,7 @@ static const void* LNPopupChildAdditiveSafeAreaInsets = &LNPopupChildAdditiveSaf
 static const void* LNPopupIgnorePrepareTabBar = &LNPopupIgnorePrepareTabBar;
 static const void* LNPopupBarExtensionView = &LNPopupBarExtensionView;
 
-static NSSet<Class>* __LNPopupBuggyAdditionalSafeAreaClasses;
 static void __LNPopupUpdateChildInsets(UIViewController* controller);
-static BOOL __LNPopupIsClassBuggyForAdditionalSafeArea(UIViewController* controller);
 
 BOOL __ln_popup_suppressViewControllerLifecycle = NO;
 
@@ -176,8 +174,6 @@ void LNPopupRegisterBuggyAdditionalSafeAreaClasses(NSArray<Class> *classes)
 		static dispatch_once_t onceToken;
 		dispatch_once(&onceToken, ^{
 			__ln_doNotCall__fixUIHostingViewHitTest();
-			
-			__LNPopupBuggyAdditionalSafeAreaClasses = [NSSet setWithObjects:UINavigationController.class, UITabBarController.class, nil];
 			
 			LNSwizzleMethod(self,
 							@selector(isModalInPresentation),
@@ -487,7 +483,10 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 		{
 			[coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
 				static SEL sel = NSSelectorFromString(LNPopupHiddenString("_forceUpdateScrollViewIfNecessary"));
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 				[self performSelector:sel];
+#pragma clang diagnostic pop
 			}];
 		}
 	}
@@ -920,22 +919,9 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 
 @end
 
-static BOOL __LNPopupIsClassBuggyForAdditionalSafeArea(UIViewController* controller)
-{
-	for (Class cls in __LNPopupBuggyAdditionalSafeAreaClasses)
-	{
-		if([controller isKindOfClass:cls])
-		{
-			return YES;
-		}
-	}
-	
-	return NO;
-}
-
 static void __LNPopupUpdateChildInsets(UIViewController* controller)
 {
-	if(__LNPopupIsClassBuggyForAdditionalSafeArea(controller) == YES)
+	if(controller.requiresIndirectSafeAreaManagement == YES)
 	{
 		for (__kindof UIViewController* obj in controller.childViewControllers)
 		{
@@ -949,7 +935,7 @@ static void __LNPopupUpdateChildInsets(UIViewController* controller)
 	
 	UIViewController* parentViewController = controller.parentViewController;
 	
-	while(parentViewController != nil && __LNPopupIsClassBuggyForAdditionalSafeArea(parentViewController) == YES)
+	while(parentViewController != nil && parentViewController.requiresIndirectSafeAreaManagement == YES)
 	{
 		popupSafeAreaInsets = __LNEdgeInsetsSum(popupSafeAreaInsets, _LNPopupChildAdditiveSafeAreas(parentViewController));
 		parentViewController = parentViewController.parentViewController;
@@ -964,7 +950,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	
 	//Container classes with bottom bars have bugs if additional safe areas are applied directly to them.
 	//Instead, set a custom property and update their children recursively to take care of the additional safe area.
-	if(__LNPopupIsClassBuggyForAdditionalSafeArea(controller) == YES)
+	if(controller.requiresIndirectSafeAreaManagement == YES)
 	{
 		UIEdgeInsets current = _LNPopupChildAdditiveSafeAreas(controller);
 		if(UIEdgeInsetsEqualToEdgeInsets(current, popupEdgeInsets) == NO)
@@ -1160,6 +1146,11 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (UIEdgeInsets)insetsForBottomDockingView
 {
+	if(LNPopupEnvironmentHasGlass())
+	{
+		return UIEdgeInsetsZero;
+	}
+	
 	return self.tabBar.hidden == NO && self._isTabBarHiddenDuringTransition == NO ? UIEdgeInsetsZero : self.view.superview.safeAreaInsets;
 }
 
@@ -1178,8 +1169,18 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	return 0.0;
 }
 
+- (BOOL)requiresIndirectSafeAreaManagement
+{
+	return YES;
+}
+
 - (CGRect)defaultFrameForBottomDockingView
 {
+	if(LNPopupEnvironmentHasGlass() && self._isTabBarHiddenDuringTransition)
+	{
+		return super.defaultFrameForBottomDockingView_internal;
+	}
+	
 	CGRect bottomBarFrame = self.tabBar.frame;
 	bottomBarFrame.origin = CGPointMake(0, self.view.bounds.size.height - (self._isTabBarHiddenDuringTransition ? 0.0 : bottomBarFrame.size.height));
 	return bottomBarFrame;
@@ -1939,13 +1940,23 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (CGRect)defaultFrameForBottomDockingView
 {
-	CGRect toolbarBarFrame = self.toolbar.frame;
 	if(LNPopupEnvironmentHasGlass())
 	{
-		//Apple is retarded. The toolbar is no longer part of the view hierarchy and sometimes isn't sized correctly.
-		toolbarBarFrame.size.height = 44;
+		static auto key = LNPopupHiddenString("_floatingBarContainerView.toolbarOverlayInset");
+		CGFloat inset;
+		if(self.isToolbarHidden)
+		{
+			inset = self.view.safeAreaInsets.bottom;
+		}
+		else
+		{
+			inset = [[self valueForKeyPath:key] doubleValue];
+		}
+		return CGRectMake(0, self.view.bounds.size.height - inset, self.view.bounds.size.width, inset);
 	}
 	
+	CGRect toolbarBarFrame = self.toolbar.frame;
+
 	CGFloat bottomSafeAreaHeight = 0.0;
 	if(unavailable(iOS 18.0, *))
 	{
@@ -1959,22 +1970,19 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	
 	if(@available(iOS 18.0, *))
 	{
-		if(!LNPopupEnvironmentHasGlass())
+		CGFloat offset = 0;
+		
+		if(UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad)
 		{
-			CGFloat offset = 0;
-			
-			if(UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad)
+			static auto key = LNPopupHiddenString("_backgroundView.bounds");
+			if([[self.toolbar valueForKeyPath:key] CGRectValue].size.height < (self.toolbar.bounds.size.height + self.view.safeAreaInsets.bottom))
 			{
-				static auto key = LNPopupHiddenString("_backgroundView.bounds");
-				if([[self.toolbar valueForKeyPath:key] CGRectValue].size.height < (self.toolbar.bounds.size.height + self.view.safeAreaInsets.bottom))
-				{
-					//Something in UIKit reports safe area insets incorrectly on iPadOS. This is a workaround for this issue.
-					offset = 5.0;
-				}
+				//Something in UIKit reports safe area insets incorrectly on iPadOS. This is a workaround for this issue.
+				offset = 5.0;
 			}
-			
-			toolbarBarFrame.origin.y += offset;
 		}
+		
+		toolbarBarFrame.origin.y += offset;
 	}
 	
 	return toolbarBarFrame;
@@ -1982,32 +1990,24 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (UIEdgeInsets)insetsForBottomDockingView
 {
+	if(LNPopupEnvironmentHasGlass())
+	{
+		return UIEdgeInsetsZero;
+	}
+	
 	BOOL isPad = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad;
 	
-	if(!LNPopupEnvironmentHasGlass() && self.presentingViewController != nil && [NSStringFromClass(self.nonMemoryLeakingPresentationController.class) containsString:@"Preview"])
+	if(self.presentingViewController != nil && [NSStringFromClass(self.nonMemoryLeakingPresentationController.class) containsString:@"Preview"])
 	{
 		return UIEdgeInsetsZero;
 	}
-	
-	CGFloat offset = 0.0;
-	
-	if(LNPopupEnvironmentHasGlass() && self.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassRegular && !isPad && self.isToolbarHidden == NO)
-	{
-		offset = 8.0;
-	}
-	
-	if(@available(iOS 14.0, *))
-	if(LNPopupEnvironmentHasGlass() && self.splitViewController != nil && [self.splitViewController viewControllerForColumn:UISplitViewControllerColumnPrimary] == self)
-	{
-		return UIEdgeInsetsZero;
-	}
-	
-//	if(LNPopupEnvironmentHasGlass() && !isPad && self.view.window.safeAreaInsets.bottom == 0 && !self.isToolbarHidden)
-//	{
-//		return UIEdgeInsetsMake(0, 0, 30, 0);
-//	}
-//	
-	return UIEdgeInsetsMake(0, 0, MAX(self.view.superview.safeAreaInsets.bottom, self.view.window.safeAreaInsets.bottom) + offset, 0);
+
+	return UIEdgeInsetsMake(0, 0, MAX(self.view.superview.safeAreaInsets.bottom, self.view.window.safeAreaInsets.bottom), 0);
+}
+
+- (BOOL)requiresIndirectSafeAreaManagement
+{
+	return YES;
 }
 
 + (void)load
@@ -2413,6 +2413,16 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		void (*super_call)(struct objc_super*, SEL) = (void (*)(struct objc_super*, SEL))objc_msgSendSuper;
 		super_call(&superInfo, @selector(viewDidLayoutSubviews));
 	}
+}
+
+- (BOOL)requiresIndirectSafeAreaManagement
+{
+	if(LNPopupEnvironmentHasGlass())
+	{
+		return YES;
+	}
+	
+	return super.requiresIndirectSafeAreaManagement;
 }
 
 @end

@@ -31,22 +31,20 @@ Check the demo project for many common use cases of the framework in various sce
 ### Features
 
 * Supports iOS 26 glass design, while maintaining a system-apropriate look and feel on previous iOS versions
-* Available for iOS 13 and above, as an Xcode framework or an SPM package
+* Available for iOS 13 and above, as an SPM package for Swift and Objective C
 * Good citizen in modern UIKit world
-* For SwiftUI, check out the [LNPopupUI library](https://github.com/LeoNatan/LNPopupUI).
+* For SwiftUI, check out the [LNPopupUI library](https://github.com/LeoNatan/LNPopupUI)
 
 ## Adding to Your Project
 
 ### Swift Package Manager
 
-Swift Package Manager is the recommended way to integrate `LNPopupController` in your project.
-
-`LNPopupController` supports SPM versions 5.5 and above. To use SPM, you should use Xcode 13 to open your project. Click `File` -> `Swift Packages` -> `Add Package Dependency`, enter `https://github.com/LeoNatan/LNPopupController`. Select the version you’d like to use.
+`LNPopupController` supports SPM versions 6.0 (Xcode 16) and above. In Xcode, click `File` → `Add Package Dependencies…`, enter `https://github.com/LeoNatan/LNPopupController`. Select the version you’d like to use.
 
 You can also manually add the package to your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/LeoNatan/LNPopupController.git", from: "2.15.0")
+.package(url: "https://github.com/LeoNatan/LNPopupController.git", from: "4.0.0")
 ```
 
 And the dependency in your target:
@@ -234,7 +232,7 @@ To hide the popup close button, set the `popupCloseButtonStyle` property to `LNP
 
 Supplying long text for the title and/or subtitle will result in a scrolling text, if text marquee is enabled. Otherwise, the text will be truncated.
 
-<p align="center"><img src="./Supplements/floating_no_scroll_delay.gif" width="360"/> <img src="./Supplements/legacy_compact_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_compact_no_scroll_delay.gif" width="360"/> <img src="./Supplements/floating_compact_scroll.gif" width="360"/></p>
 
 #### Popup Transitions
 
@@ -244,10 +242,10 @@ The framework supports popup image transitions:
 
 Transitions are opt-in and require you either use an `LNPopupImageView` image view in your popup content, which is discovered automatically by the system, or provide a view that will serve as the transition target/source by implementing `viewForPopupTransition(from:to:)` in popup content controller.
 
-For optimal results, always use `LNPopupImageView` instances that displays the same image displayed in the popup bar's image view. By default, the system discovers the `LNPopupImageView` image view in your content controller's view hierarchy automatically, and will use that as the transition target/source. The system will smoothly transition between the popup bar's image view and the `LNPopupImageView` instance, taking into account the corner radii and shadows of the views.
+For optimal results, use an `LNPopupImageView` instance in your popup content view hierarchy, that displays the same image displayed in the popup bar's image view. By default, the system discovers the `LNPopupImageView` instance  automatically, and will use that as the transition target/source. The system will smoothly transition between the popup bar's image view and the `LNPopupImageView` instance, taking into account the corner radii and shadow of the view.
 
 > [!TIP]
-> When using automatic discovery, there must be only a single `LNPopupImageView` instance in your content controller's view hierarchy, or results will be undefined. For more advanced scenarios where automatic discovery fails, implement `viewForPopupTransition(from:to:)` in your content controller to return the correct instance.
+> When relying on automatic discovery, there must only be a single `LNPopupImageView` instance in your popup content controller's view hierarchy, or results will be undefined. For more advanced scenarios where automatic discovery fails, implement `viewForPopupTransition(from:to:)` in your content controller to return the correct instance.
 
 You can return any custom view in `viewForPopupTransition(from:to:)` to serve as the transition target/source. The system will attempt to match the attributes of the provided view and the popup bar's image view as closely as possible to transition smoothly between them. Implement the `LNPopupTransitionView` protocol in your custom view to allow the system to smoothly transition between your custom view and the popup bar image view.
 

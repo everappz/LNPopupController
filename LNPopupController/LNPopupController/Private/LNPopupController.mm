@@ -22,6 +22,7 @@
 #import "_LNPopupTransitionGenericCloseAnimator.h"
 #import "_LNPopupTransitionPreferredCloseAnimator.h"
 #import "LNPopupPresentationContainerSupport.h"
+#import "_LNPopupBarTabBarAccessoryView.h"
 
 #import <objc/runtime.h>
 #import <os/log.h>
@@ -240,7 +241,11 @@ __attribute__((objc_direct_members))
 - (CGRect)_frameForClosedPopupBarForBarHeight:(CGFloat)barHeight
 {
 	CGRect defaultFrame = [_containerController _defaultFrameForBottomDockingViewForPopupBar:_popupBar];
-	UIEdgeInsets insets = [_containerController insetsForBottomDockingView];
+	UIEdgeInsets insets = UIEdgeInsetsZero;
+	if(!LNPopupEnvironmentHasGlass())
+	{
+		insets = [_containerController insetsForBottomDockingView];
+	}
 	CGFloat offset = [_containerController _ln_popupOffsetForPopupBar:_popupBar];
 	return CGRectMake(0, defaultFrame.origin.y - barHeight - insets.bottom + offset, _containerController.view.bounds.size.width, barHeight);
 }
@@ -332,7 +337,14 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	}
 	
 	_cachedDefaultFrame = [_containerController _defaultFrameForBottomDockingViewForPopupBar:_popupBar];
-	_cachedInsets = [_containerController insetsForBottomDockingView];
+	if(LNPopupEnvironmentHasGlass())
+	{
+		_cachedInsets = UIEdgeInsetsZero;
+	}
+	else
+	{
+		_cachedInsets = [_containerController insetsForBottomDockingView];
+	}
 	CGFloat offset = [_containerController _ln_popupOffsetForPopupBar:_popupBar];
 	_cachedInsets.bottom -= offset;
 	
@@ -414,16 +426,12 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	return YES;
 }
 
-- (_LNPopupTransitionView*)_userTransitionViewForTransitionFromState:(LNPopupPresentationState)fromState toState:(LNPopupPresentationState)state userView:(out id<LNPopupTransitionView> _Nonnull __strong * _Nonnull)userView
+- (_LNPopupTransitionView*)_customTransitionViewForTransitionFromState:(LNPopupPresentationState)fromState toState:(LNPopupPresentationState)state userView:(out id<LNPopupTransitionView> _Nonnull __strong * _Nonnull)userView
 {
+	//Normally, only LNPopupUI should provide a custom transition view
 	_LNPopupTransitionView* userTransitionView = (id)[self.currentContentController _ln_transitionViewForPopupTransitionFromPresentationState:fromState toPresentationState:state view:userView];
 	
 	if(userTransitionView == nil || [userTransitionView isKindOfClass:_LNPopupTransitionView.class] == NO)
-	{
-		return nil;
-	}
-	
-	if([self _validateViewForTransition:userTransitionView.sourceView] == NO)
 	{
 		return nil;
 	}
@@ -443,22 +451,22 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	return userView;
 }
 
-- (void)animateOpenTransitionIfNeededWithAnimator:(UIViewPropertyAnimator*)animator userTransitionView:(_LNPopupTransitionView*)userTransitionView userViewForTransition:(UIView*)userView otherAnimations:(void(^)(void))otherAnimations
+- (void)animateOpenTransitionIfNeededWithAnimator:(UIViewPropertyAnimator*)animator customTransitionView:(_LNPopupTransitionView*)customTransitionView userViewForTransition:(UIView*)userView otherAnimations:(void(^)(void))otherAnimations
 {
 	_LNPopupTransitionOpenAnimator* handler;
 	if([userView conformsToProtocol:@protocol(LNPopupTransitionView)])
 	{
-		handler = [[_LNPopupTransitionPreferredOpenAnimator alloc] initWithTransitionView:userTransitionView userView:userView popupBar:self.popupBar popupContentView:self.popupContentView];
+		handler = [[_LNPopupTransitionPreferredOpenAnimator alloc] initWithTransitionView:customTransitionView userView:userView popupBar:self.popupBar popupContentView:self.popupContentView];
 	}
 	else
 	{
-		handler = [[_LNPopupTransitionGenericOpenAnimator alloc] initWithTransitionView:userTransitionView userView:userView popupBar:self.popupBar popupContentView:self.popupContentView];
+		handler = [[_LNPopupTransitionGenericOpenAnimator alloc] initWithTransitionView:customTransitionView userView:userView popupBar:self.popupBar popupContentView:self.popupContentView];
 	}
 	
 	[handler animateWithAnimator:animator otherAnimations:otherAnimations];
 }
 
-- (void)animateCloseTransitionIfNeededWithAnimator:(UIViewPropertyAnimator*)animator userTransitionView:(_LNPopupTransitionView*)userTransitionView userViewForTransition:(UIView*)userView otherAnimations:(void(^)(void))otherAnimations
+- (void)animateCloseTransitionIfNeededWithAnimator:(UIViewPropertyAnimator*)animator customTransitionView:(_LNPopupTransitionView*)userTransitionView userViewForTransition:(UIView*)userView otherAnimations:(void(^)(void))otherAnimations
 {
 	_LNPopupTransitionCloseAnimator* handler;
 	
@@ -698,7 +706,8 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	   ((stateAtStart == LNPopupPresentationStateBarPresented && state == LNPopupPresentationStateOpen) ||
 		(state == LNPopupPresentationStateBarPresented)))
 	{
-		transitionView = [self _userTransitionViewForTransitionFromState:publicStateAtStart toState:state userView:&userView];
+		//Normally, only LNPopupUI should provide a custom transition view
+		transitionView = [self _customTransitionViewForTransitionFromState:publicStateAtStart toState:state userView:&userView];
 		
 		if(transitionView == nil)
 		{
@@ -715,15 +724,15 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 #endif
 
 	_runningPopupAnimation = [[UIViewPropertyAnimator alloc] initWithDuration:animationDuration dampingRatio:spring ? 0.85 : 1.0 animations:nil];
-	_runningPopupAnimation.userInteractionEnabled = NO;
+	_runningPopupAnimation.userInteractionEnabled = state == LNPopupPresentationStateOpen;
 	
 	if(stateAtStart == LNPopupPresentationStateBarPresented)
 	{
-		[self animateOpenTransitionIfNeededWithAnimator:_runningPopupAnimation userTransitionView:transitionView userViewForTransition:userView otherAnimations:animationBlock];
+		[self animateOpenTransitionIfNeededWithAnimator:_runningPopupAnimation customTransitionView:transitionView userViewForTransition:userView otherAnimations:animationBlock];
 	}
 	else if(state == LNPopupPresentationStateBarPresented)
 	{
-		[self animateCloseTransitionIfNeededWithAnimator:_runningPopupAnimation userTransitionView:transitionView userViewForTransition:userView otherAnimations:animationBlock];
+		[self animateCloseTransitionIfNeededWithAnimator:_runningPopupAnimation customTransitionView:transitionView userViewForTransition:userView otherAnimations:animationBlock];
 	}
 	else
 	{
@@ -742,7 +751,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	
 	if(animated)
 	{
-		[self _beginTransitionLockWithUserInteractionEnabled:NO];
+		[self _beginTransitionLockWithUserInteractionEnabled:state == LNPopupPresentationStateOpen];
 	}
 	
 	[_runningPopupAnimation startAnimation];
@@ -994,7 +1003,14 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		[self _transitionToState:_LNPopupPresentationStateTransitioning notifyDelegate:YES animated:NO useSpringAnimation:NO allowPopupBarAlphaModification:YES allowFeedbackGeneration:NO forceFeedbackGenerationAtStart:NO completion:nil];
 		
 		_cachedDefaultFrame = [_containerController _defaultFrameForBottomDockingViewForPopupBar:_popupBar];
-		_cachedInsets = [_containerController insetsForBottomDockingView];
+		if(LNPopupEnvironmentHasGlass())
+		{
+			_cachedInsets = UIEdgeInsetsZero;
+		}
+		else
+		{
+			_cachedInsets = [_containerController insetsForBottomDockingView];
+		}
 		_cachedOpenPopupFrame = [self _frameForOpenPopupBar];
 		
 		_dismissGestureStarted = YES;
@@ -1548,6 +1564,13 @@ static void __LNPopupControllerDeeplyEnumerateSubviewsUsingBlock(UIView* view, v
 - (void)_presentPopupBarWithContentViewController:(UIViewController*)contentViewController openPopup:(BOOL)open animated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	_containerController.popupContentViewController = contentViewController;
+	if(@available(iOS 26.0, *))
+	{
+		if([_containerController isKindOfClass:UITabBarController.class])
+		{
+			[(UITabBarController*)_containerController setBottomAccessory:[[UITabAccessory alloc] initWithContentView:[[_LNPopupBarTabBarAccessoryView alloc] initWithPopupController:self]]];
+		}
+	}
 	
 	[self _start120HzHack];
 	
@@ -1586,38 +1609,38 @@ static void __LNPopupControllerDeeplyEnumerateSubviewsUsingBlock(UIView* view, v
 		self.popupBar.clipsToBounds = NO;
 		
 #if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
-		if(@available(iOS 26, *))
-		if(animated && LNPopupEnvironmentHasGlass())
+		if(animated)
 		{
 			[UIView performWithoutAnimation:^{
-				CGRect frame = [self _frameForClosedPopupBarForBarHeight:_LNPopupBarHeightForPopupBar(self.popupBar)];
+				self.popupBar.floatingBackgroundShadowView.alpha = 0.0;
 				
-				if(animated)
+				if(@available(iOS 26.0, *))
+				if(LNPopupEnvironmentHasGlass())
 				{
+					CGRect frame = [self _frameForClosedPopupBarForBarHeight:_LNPopupBarHeightForPopupBar(self.popupBar)];
 					self.popupBar.contentView.effect = [LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleClear];
 					self.popupBar.contentView.contentView.alpha = 0.0;
-					self.popupBar.floatingBackgroundShadowView.alpha = 0.0;
 #ifndef LNPopupControllerEnforceStrictClean
 					self.popupBar.contentView.contentView.layer.filters = @[__LNPopupEmptyBlurFilter()];
 					[self.popupBar.contentView.contentView.layer setValue:@5 forKeyPath:__LNPopupBlurFilterUpdateKey];
 #endif
+					
+					UIView* target;
+					if(self.popupBar.activeAppearance.floatingBackgroundEffect.ln_isGlass)
+					{
+						target = self.popupBar.layoutContainer;
+					}
+					else
+					{
+						target = self.popupBar;
+					}
+					self.popupBar.os26TransitionView = [_LNPopupTransitionView transitionViewWithSourceView:target];
+					self.popupBar.os26TransitionView.matchesTransform = NO;
+					self.popupBar.os26TransitionView.matchesPosition = NO;
+					self.popupBar.os26TransitionView.frame = frame;
+					self.popupBar.os26TransitionView.transform = CGAffineTransformMakeScale(1.05, 1.05);
+					self.popupBar.os26TransitionView.alpha = 0.0;
 				}
-				
-				UIView* target;
-				if(self.popupBar.activeAppearance.floatingBackgroundEffect.ln_isGlass)
-				{
-					target = self.popupBar.layoutContainer;
-				}
-				else
-				{
-					target = self.popupBar;
-				}
-				self.popupBar.os26TransitionView = [_LNPopupTransitionView transitionViewWithSourceView:target];
-				self.popupBar.os26TransitionView.matchesTransform = NO;
-				self.popupBar.os26TransitionView.matchesPosition = NO;
-				self.popupBar.os26TransitionView.frame = frame;
-				self.popupBar.os26TransitionView.transform = CGAffineTransformMakeScale(1.05, 1.05);
-				self.popupBar.os26TransitionView.alpha = 0.0;
 			}];
 		}
 #endif
@@ -1675,7 +1698,6 @@ static void __LNPopupControllerDeeplyEnumerateSubviewsUsingBlock(UIView* view, v
 			
 			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 				[UIView animateWithDuration:LNPopupBarTransitionDuration delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0 options:UIViewAnimationOptionAllowAnimatedContent | UIViewAnimationOptionBeginFromCurrentState animations:^{
-					[self.popupBar.contentView clearEffect];
 					self.popupBar.contentView.effect = [self.popupBar.activeAppearance floatingBackgroundEffectForTraitCollection:self.popupBar.traitCollection];
 				} completion:nil];
 			});
@@ -1859,7 +1881,10 @@ id __LNPopupEmptyBlurFilter(void)
 	static Class cls = NSClassFromString(LNPopupHiddenString("CAFilter"));
 	static SEL sel = NSSelectorFromString(LNPopupHiddenString("filterWithName:"));
 	
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 	id rv = [cls performSelector:sel withObject:__LNPopupBlurFilterName];
+#pragma clang diagnostic pop
 	[rv setValue:@0 forKey:__LNPopupBlurFilterInputRadius];
 	
 	return rv;
@@ -2152,7 +2177,7 @@ id __LNPopupEmptyBlurFilter(void)
 			{
 				NSString* frameworkName = NSClassFromString(@"__LNPopupUI") ? @"LNPopupUI" : @"LNPopupController";
 				NSString* subsystem = [NSString stringWithFormat:@"com.LeoNatan.%@", frameworkName];
-				os_log_t customLog = os_log_create(subsystem.UTF8String, frameworkName.UTF8String);
+				os_log_t customLog = os_log_create(subsystem.UTF8String, "ProMotion");
 				os_log_with_type(customLog, OS_LOG_TYPE_DEBUG, "%{public}@: This device supports ProMotion, but %{public}s does not enable the full range of refresh rates by setting the “CADisableMinimumFrameDurationOnPhone” Info.plist key to “true”. See https://developer.apple.com/documentation/quartzcore/optimizing_promotion_refresh_rates_for_iphone_13_pro_and_ipad_pro", frameworkName, NSBundle.mainBundle.bundleURL.lastPathComponent.UTF8String);
 			}
 		}
