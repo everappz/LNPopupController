@@ -1120,6 +1120,8 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	}
 	
 	_dismissGestureStarted = NO;
+    
+    [self _endTransitioningLock];
 }
 
 - (void)_popupBarPresentationByUserPanGestureHandler:(UIPanGestureRecognizer*)pgr
