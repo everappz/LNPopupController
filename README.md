@@ -8,9 +8,9 @@ For SwiftUI, check out the [LNPopupUI library](https://github.com/LeoNatan/LNPop
 
 [![GitHub issues](https://img.shields.io/github/issues-raw/LeoNatan/LNPopupController.svg)](https://github.com/LeoNatan/LNPopupController/issues) [![GitHub contributors](https://img.shields.io/github/contributors/LeoNatan/LNPopupController.svg)](https://github.com/LeoNatan/LNPopupController/graphs/contributors) [![Swift Package Manager compatible](https://img.shields.io/badge/swift%20package%20manager-compatible-green)](https://swift.org/package-manager/) [![Carthage compatible](https://img.shields.io/badge/carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
-<p align="center"><img src="./Supplements/open_floating_popup.gif"/></p>
+<p align="center"><img src="./Supplements/intro.gif"/></p>
 
-Once a popup bar is presented with a content view controller, the user can swipe or tap the popup bar at any point to present the popup. After finishing, the user dismisses the popup by either swiping or tapping the popup close button.
+Once a popup bar is presented with a content view controller, the user can swipe or tap the popup bar present the popup, interact with the popup content and dismiss the popup by either swiping down or tapping the popup close button.
 
 The framework is intended to be very generic and work in most situations, so it is implemented as a category over `UIViewController`. Each view controller can present a popup bar, docked to a bottom view. 
 For `UITabBarController` and its subclasses, the default docking view is the tab bar. 
@@ -30,7 +30,7 @@ Check the demo project for many common use cases of the framework in various sce
 
 ### Features
 
-* Supports iOS 26 glass design, while maintaining a system-apropriate look and feel on previous iOS versions
+* Supports iOS 26 glass design, while maintaining an appropriate look and feel on previous iOS versions
 * Available for iOS 13 and above, as an SPM package for Swift and Objective C
 * Good citizen in modern UIKit world
 * For SwiftUI, check out the [LNPopupUI library](https://github.com/LeoNatan/LNPopupUI)
@@ -65,36 +65,36 @@ import LNPopupController
 
 ### Managing the Popup Bar
 
-To present the popup bar, create a content controller, update its popup item and present the popup bar using `presentPopupBar(with:animated:completion:)`.
+To present a popup bar, first create a content controller, update its popup item and present the bar using `presentPopupBar(with:animated:completion:)`.
 
 ```swift
-let demoVC = DemoPopupContentViewController()
-demoVC.view.backgroundColor = .red
-demoVC.popupItem.title = "Hello Title"
-demoVC.popupItem.subtitle = "And a Subtitle!"
-demoVC.popupItem.progress = 0.34
+let contentVC = PopupContentViewController()
+contentVC.view.backgroundColor = .red
+contentVC.popupItem.title = "Hello Title"
+contentVC.popupItem.subtitle = "And a Subtitle!"
+contentVC.popupItem.progress = 0.34
     
-tabBarController?.presentPopupBar(with: demoVC, animated: true, completion: nil)
+tabBarController?.presentPopupBar(with: contentVC, animated: true)
 ```
 
-You can present a new content controller while the popup bar is presented and even when the popup itself is open.
+Normally, each popup content controller manages its own popup item and is responsible to keep its information up to date. You can present a new content controller while the popup bar is presented and even when the popup itself is open; the popup bar will update its content with the content controller's popup item and the content view will update with the new controller's view.
 
 To open and close the popup programatically, use `openPopup(animated:completion:)` and `closePopup(animated:completion:)` respectively.
 
 ```swift
-tabBarController?.openPopup(animated: true, completion: nil)
+tabBarController?.openPopup(animated: true)
 ```
 
 Alternatively, you can present the popup bar and open the popup in one animation, using `presentPopupBar(with:openPopup:animated:completion:)`.
 
 ```swift
-tabBarController?.presentPopupBar(with: demoVC, openPopup:true, animated: true, completion: nil)
+tabBarController?.presentPopupBar(with: demoVC, openPopup:true, animated: true)
 ```
 
 To dismiss the popup bar, use `dismissPopupBar(animated:completion:)`.
 
 ```swift
-tabBarController?.dismissPopupBar(animated: true, completion: nil)
+tabBarController?.dismissPopupBar(animated: true)
 ```
 
 If the popup is open when dismissing the popup bar, the popup will also be closed.
@@ -103,33 +103,11 @@ If the popup is open when dismissing the popup bar, the popup will also be close
 
 A popup item should always reflect the popup information about the view controller with which it is associated. The popup item should provide a title and subtitles to display in the popup bar, when the view controller is presented as a popup content controller. In addition, the item may contain bar buttons to display, by setting the `barButtonItems` property.
 
-### Popup Container View Controllers
-
-Any `UIViewController` subclasses can be popup container view controllers. The popup bar is attached to a bottom docking view. By default, `UITabBarController` and `UINavigationController` subclasses return their bottom bars as docking view, while other controllers return a hidden 0pt height view on the bottom of the view. In your subclass, override `bottomDockingViewForPopupBar` and `defaultFrameForBottomDockingView` and return your view and frame accordingly. **The returned view must be attached to the bottom of the view controller's view, or results are undefined.**
-
-```swift
-override var bottomDockingViewForPopupBar: UIView? {
-  return myCoolBottomView
-}
-
-override var defaultFrameForBottomDockingView: CGRect {
-  var bottomViewFrame = myCoolBottomView.frame
-  
-  if isMyCoolBottomViewHidden {
-    bottomViewFrame.origin = CGPoint(x: bottomViewFrame.x, y: view.bounds.height)
-  } else {
-    bottomViewFrame.origin = CGPoint(x: bottomViewFrame.x, y: view.bounds.height - bottomViewFrame.height)
-  }
-  
-  return bottomViewFrame
-}
-```
-
 ### Appearance and Behavior
 
 `LNPopupController` provides many different properties to present users with popup bars, open popups and let the user interact with them. By default, the framework chooses styles to match the user’s current operating system version, but can all be customized as required.
 
-<p align="center"><img src="./Supplements/floating_bar_style.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_bar_style.gif" width="414"/></p>
 
 The defaults are:
 
@@ -172,24 +150,24 @@ navigationController?.popupBar.barStyle = .floating
 
 ###### Floating Compact:
 
-<p align="center"><img src="./Supplements/floating_compact_no_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_compact_no_scroll.gif" width="414"/></p>
 
 ###### Floating:
 
-<p align="center"><img src="./Supplements/floating_no_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_no_scroll.gif" width="414"/></p>
 
 ##### Legacy Bar Styles
 
 On iOS 18 and below, the framework presents popup bar styles and animations that are appropriate for the user's operating system. Non-floating prominent and compact bar styles are also available.
 
 ###### Floating:
-<p align="center"><img src="./Supplements/legacy_floating_no_scroll.gif" width="360"/>
+<p align="center"><img src="./Supplements/legacy_floating_no_scroll.gif" width="414"/>
 
 ###### Prominent:
-<p align="center"><img src="./Supplements/legacy_modern_no_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/legacy_modern_no_scroll.gif" width="414"/></p>
 
 ###### Compact:
-<p align="center"><img src="./Supplements/legacy_compact_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/legacy_compact_scroll.gif" width="414"/></p>
 
 > [!NOTE]
 > On iOS 26 and later, non-floating bar styles will be automatically converted to the appropriate floating style.
@@ -202,7 +180,7 @@ Customizing the popup interaction style is achieved by setting the popup present
 navigationController?.popupInteractionStyle = .drag
 ```
 
-<p align="center"><img src="./Supplements/interaction_snap.gif" width="360"/> <img src="./Supplements/interaction_drag.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/interaction_snap.gif" width="414"/> <img src="./Supplements/interaction_drag.gif" width="414"/></p>
 
 #### Progress View Style
 
@@ -214,7 +192,7 @@ navigationController?.popupBar.progressViewStyle = .top
 
 By default, progress view is hidden.
 
-<p align="center"><img src="./Supplements/progress_view_none.png" width="360"/><br/><br/><img src="./Supplements/progress_view_top.png" width="360"/><br/><br/><img src="./Supplements/progress_view_bottom.png" width="360"/></p>
+<p align="center"><img src="./Supplements/progress_view_none.png" width="414"/><br/><br/><img src="./Supplements/progress_view_top.png" width="414"/><br/><br/><img src="./Supplements/progress_view_bottom.png" width="414"/></p>
 
 #### Close Button Style
 
@@ -226,19 +204,19 @@ navigationController.popupContentView.popupCloseButtonStyle = .round
 
 To hide the popup close button, set the `popupCloseButtonStyle` property to `LNPopupCloseButton.Style.none`.
 
-<p align="center"><img src="./Supplements/close_button_grabber.png" width="360"/><br/><br/><img src="./Supplements/close_button_chevron.png" width="360"/><br/><br/><img src="./Supplements/close_button_round.png" width="360"/><br/><br/><img src="./Supplements/close_button_none.png" width="360"/></p>
+<p align="center"><img src="./Supplements/close_button_grabber.png" width="414"/><br/><br/><img src="./Supplements/close_button_chevron.png" width="414"/><br/><br/><img src="./Supplements/close_button_round.png" width="414"/><br/><br/><img src="./Supplements/close_button_none.png" width="414"/></p>
 
 #### Text Marquee Scroll
 
 Supplying long text for the title and/or subtitle will result in a scrolling text, if text marquee is enabled. Otherwise, the text will be truncated.
 
-<p align="center"><img src="./Supplements/floating_compact_no_scroll_delay.gif" width="360"/> <img src="./Supplements/floating_compact_scroll.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_compact_no_scroll_delay.gif" width="414"/> <img src="./Supplements/floating_compact_scroll.gif" width="414"/></p>
 
 #### Popup Transitions
 
 The framework supports popup image transitions:
 
-<p align="center"><img src="./Supplements/popup_transitions.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/popup_transitions.gif" width="414"/></p>
 
 Transitions are opt-in and require you either use an `LNPopupImageView` image view in your popup content, which is discovered automatically by the system, or provide a view that will serve as the transition target/source by implementing `viewForPopupTransition(from:to:)` in popup content controller.
 
@@ -287,15 +265,39 @@ navigationController?.popupBar.standardAppearance = appearance
 navigationController?.popupBar.tintColor = .yellow
 ```
 
-<p align="center"><img src="./Supplements/floating_custom.png" width="360"/></p>
+<p align="center"><img src="./Supplements/floating_custom.png" width="414"/></p>
 
 #### System Interactions
 
+##### Popup Bar Minimization
+
+The framework supports popup bar minimization starting with iOS 26. Currently, it is supported with `UITabBarController` container controllers.
+
+<p align="center"><img src="./Supplements/floating_minimize.gif" width="414"/></p>
+
+To enable, set the minimization mode of the tab bar controller:
+
+```swift
+self.tabBarController?.tabBarMinimizeBehavior = .onScrollDown
+```
+
+To listen to bar environment changes in your popup content controller and update the popup item accordingly, register for the `LNPopupBar.EnvironmentTrait` trait changes:
+
+```swift
+registerForTraitChanges([LNPopupBar.EnvironmentTrait.self]) { (self: Self, previousTraitCollection) in
+    popupItem.barButtonItems = self.traitCollection.popUpBarEnvironment == .inline ? /* inline bar */ : /* regular bar */
+}
+```
+
+You can also handle changes in `traitCollectionDidChange(_:)`.
+
+Popup bar minimization is enabled by default, and is supported for system and custom popup bars, with the exception of custom bars with `LNPopupBar.customBarWantsFullBarWidth = true`. To disable popup bar minimization, set `LNPopupBar.supportsMinimization` to `false`.
+
 ##### Bar Transitions
 
-The `hidesBottomBarWhenPushed` property is supported for navigation and tab bar controllers. When set to `true`, the popup bar will transition to the bottom of the pushed controller's view. Setting  `isToolbarHidden = true` and calling `setToolbarHidden(_:animated:)` are also supported.
+The `hidesBottomBarWhenPushed` property is supported for navigation and tab bar controllers. When set to `true`, the popup bar will transition to the bottom of the pushed controller's view. Setting  `isToolbarHidden = true` or `isTabBarHidden = true` and calling `setToolbarHidden(_:animated:)` or `setTabBarHidden:(_:animated:)` are also supported.
 
-<p align="center"><img src="./Supplements/hidesBottomBar_TabBar.gif" width="360"/> <img src="./Supplements/hidesBottomBar_Toolbar.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/hidesBottomBar_TabBar.gif" width="414"/> <img src="./Supplements/hidesBottomBar_Toolbar.gif" width="414"/></p>
 
 ##### Tab Bar Sidebar
 
@@ -305,15 +307,13 @@ Starting with iPadOS 18, the framework supports `UITabBarController` sidebars. W
 
 When the sidebar overlays the underlying content, the popup bar dims together with the content:
 
-<p align="center"><img src="./Supplements/tab_bar_sidebar_portrait_floating.png" width="360"/></p>
-
-
+<p align="center"><img src="./Supplements/tab_bar_sidebar_portrait_floating.png" width="414"/></p>
 
 ##### Status Bar Management
 
 Status bar management of the popup content view controller is respected and applied when appropriate.
 
-<p align="center"><img src="./Supplements/statusbar_style.gif" width="360"/> <img src="./Supplements/statusbar_hidden.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/statusbar_style.gif" width="414"/> <img src="./Supplements/statusbar_hidden.gif" width="414"/></p>
 
 Home indicator visibility control is respected and applied when appropriate.
 
@@ -321,7 +321,7 @@ Home indicator visibility control is respected and applied when appropriate.
 
 Context menus are supported. Add a `UIContextMenuInteraction` interaction object to the popup bar, and it will behave as expected.
 
-<p align="center"><img src="./Supplements/popup_bar_context_menu.png" width="360"/></p>
+<p align="center"><img src="./Supplements/popup_bar_context_menu.png" width="414"/></p>
 
 ##### Pointer Interactions
 
@@ -337,13 +337,13 @@ With iOS versions 15 up to 18, scroll-edge appearance is automatically disabled 
 
 On iOS 26, this is no longer necessary.
 
-<p align="center"><img src="./Supplements/scroll_edge_appearance.gif" width="360"/></p>
+<p align="center"><img src="./Supplements/scroll_edge_appearance.gif" width="414"/></p>
 
 #### Custom Popup Bars
 
 The framework supports implementing custom popup bars:
 
-<p align="center"><img src="./Supplements/custom_bar.png" width="360"/></p>
+<p align="center"><img src="./Supplements/custom_bar.png" width="414"/></p>
 
 To implement a custom popup bar, you subclass `LNPopupCustomBarViewController`.
 
@@ -389,7 +389,7 @@ You can implement the delegate of the interaction gesture recognizer in order to
 
 The framework has full right-to-left support.
 
-<p align="center"><img src="./Supplements/rtl_english.png" width="360"/> <img src="./Supplements/rtl_hebrew.png" width="360"/></p>
+<p align="center"><img src="./Supplements/rtl_english.png" width="414"/> <img src="./Supplements/rtl_hebrew.png" width="414"/></p>
 
 By default, the popup bar will follow the system's user interface layout direction, but will preserve the bar button items' order.
 To customize this behavior, modify the popup bar's ```semanticContentAttribute``` and ```barItemsSemanticContentAttribute``` properties.
@@ -398,7 +398,7 @@ To customize this behavior, modify the popup bar's ```semanticContentAttribute``
 
 The framework supports accessibility and will honor accessibility labels, traits, hints and values. By default, the accessibility label of the popup bar is the title and subtitle provided by the popup item.
 
-<p align="center"><img src="./Supplements/default_bar_accessibility_label.png" width="360"/></p>
+<p align="center"><img src="./Supplements/default_bar_accessibility_label.png" width="414"/></p>
 
 To modify the accessibility label and hint of the popup bar, set the `accessibilityLabel` and `accessibilityHint` properties of the `LNPopupItem` object of the popup content view controller.
 
@@ -429,7 +429,62 @@ demoVC.popupItem.accessibilityProgressLabel = NSLocalizedString("Custom accessib
 demoVC.popupItem.accessibilityProgressValue = "\(accessibilityDateComponentsFormatter.stringFromTimeInterval(NSTimeInterval(popupItem.progress) * totalTime)!) \(NSLocalizedString("of", comment: "")) \(accessibilityDateComponentsFormatter.stringFromTimeInterval(totalTime)!)"
 ```
 
-## Notes
+### Custom Popup Container View Controllers
+
+Any `UIViewController` can be a popup container view controller. The popup bar can be attached to either the bottom of the screen or above a bottom docking view. By default, popup bars presented on `UITabBarController` and `UINavigationController` subclasses are attached to their respective system bottom bars as docking views, while on all other controllers, the popup bar is attached to the bottom of the screen. 
+
+If you have a custom container controller, such as a custom tab bar controller, you can override the `bottomDockingViewForPopupBar` property to return your designated bottom docking view, and `defaultFrameForBottomDockingView` to return the expected frame of the docking view. When presented, the popup bar will appear above the designated bottom docking view. If the container controller needs to reposition the bottom docking view, trigger a layout pass so the popup bar can take the new frame into account.
+
+If you return `nil` from `bottomDockingViewForPopupBar`, the popup bar will be positioned at the bottom of the screen, or above the appropriate system bottom bar, such as a tab bar or a toolbar.
+
+If your custom container controller supports hiding the designated bottom docking view, implement `isBottomDockingViewForPopupBarHidden` and return the correct value. To trigger a popup bar update, trigger a layout pass for your container controller's view. If the bottom docking view is hidden, the popup bar will be positioned at the bottom of the screen.
+
+You can control the margin between the popup bar and the bottom docking view by implementing `bottomDockingViewMarginForPopupBar`.
+
+###### Indirect Safe Area Management
+
+If your bottom docking view is dependent on the safe area of your custom container controller, you might not want to have that be modified by the presentation of the popup bar. In such a case, implement the `requiresIndirectSafeAreaManagement` property to return `true`. The system will then modify the child controller's safe areas instead of modifying the container controller's safe area.
+
+#### Example Implementation
+
+```swift
+class MyCustomTabBarController: UITabBarController {
+	override var bottomDockingViewForPopupBar: UIView? {
+		return myCustomTabBar
+	}
+	
+	override var defaultFrameForBottomDockingView: CGRect {
+		myCustomTabBar.frame
+	}
+	
+	override var isBottomDockingViewForPopupBarHidden: Bool {
+		!isMyCustomTabBarVisible
+	}
+	
+	override var bottomDockingViewMarginForPopupBar: CGFloat {
+		8.0
+	}
+	
+	func toggleMyCustomTabBarVisible() {
+		UIView.animate(withDuration: 0.4, 
+                       delay: 0.0, 
+                       usingSpringWithDamping: 1.0, 
+                       initialSpringVelocity: 0.0) {
+			self.isMyCustomTabBarVisible.toggle()
+			
+			// Animate your bar position here according to isMyCustomTabBarVisible.
+            self.updateMyCustomTabBarConstraints()
+			
+			// Trigger a layout pass so that the popup bar animates to the correct position
+			self.view.layoutIfNeeded()
+		}
+	}
+}
+```
+
+The example project includes a fully functional example scene with a custom tab bar container controller, including animated and/or interactive custom tab bar hiding support.
+
+## Additional Notes
 
 * Legacy non-translucent tab bar and toolbars are not supported and can cause visual artifacts or layout glitches. Apple has many problem with such bars, and supporting those is not a priority for `LNPopupController`.
   * The correct way to achieve an opaque bar is to use the `UIBarAppearance.configureWithOpaqueBackground()` API, which is supported by `LNPopupController`.

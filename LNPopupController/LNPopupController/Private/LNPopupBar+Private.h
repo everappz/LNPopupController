@@ -48,6 +48,12 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 
 @end
 
+@interface _LNPopupBarContentView : _LNPopupBarBackgroundView
+
+@property (nonatomic, assign, getter=isShiny) BOOL shiny;
+
+@end
+
 @interface LNPopupBar () <UIPointerInteractionDelegate, _LNPopupBarAppearanceDelegate>
 
 + (void)setAnimatesItemSetter:(BOOL)animate;
@@ -66,7 +72,7 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, readonly, strong) LNPopupBarAppearance* activeAppearance;
 @property (nonatomic, readonly, strong) LNPopupBarAppearanceChainProxy* activeAppearanceChain;
 
-- (void)_recalcActiveAppearanceChain;
+- (void)_setNeedsRecalcActiveAppearanceChain;
 
 @property (nonatomic, strong) UIImageView* shadowView;
 @property (nonatomic, strong) UIImageView* bottomShadowView;
@@ -79,7 +85,8 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, copy) NSAttributedString* attributedTitle;
 @property (nonatomic, copy) NSAttributedString* attributedSubtitle;
 
-@property (nonatomic) NSDirectionalEdgeInsets _hackyMargins;
+@property (nonatomic, readonly) NSDirectionalEdgeInsets floatingLayoutMargins;
+@property (nonatomic, setter=_setHackyMargins:) NSDirectionalEdgeInsets _hackyMargins;
 
 @property (nonatomic, strong) UIImage* image;
 
@@ -89,7 +96,7 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, strong, readwrite) UIProgressView* progressView;
 
 @property (nonatomic, strong) UIView* layoutContainer;
-@property (nonatomic, strong) _LNPopupBarBackgroundView* contentView;
+@property (nonatomic, strong) _LNPopupBarContentView* contentView;
 @property (nonatomic, strong) UIView* contentMaskView;
 
 @property (nonatomic, strong) _LNPopupBarBackgroundView* backgroundView;
@@ -128,7 +135,6 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, strong) UIViewController* swiftuiHiddenLeadingController;
 @property (nonatomic, strong) UIViewController* swiftuiHiddenTrailingController;
 
-- (void)_delayBarButtonLayout;
 - (void)_layoutBarButtonItems;
 
 - (void)_setTitleViewMarqueesPaused:(BOOL)paused;
@@ -142,6 +148,8 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 - (BOOL)isWidePad;
 
 @property (nonatomic, strong) _LNPopupTransitionView* os26TransitionView;
+
+@property (nonatomic) CGRect backgroundViewFrameDuringAnimation;
 
 @end
 
@@ -163,8 +171,6 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 - (UIColor*)_subtitleColor;
 
 @end
-
-@interface _LNPopupBarContentView : _LNPopupBarBackgroundView @end
 
 @interface _LNPopupBarTitlesView : UIStackView @end
 
@@ -201,5 +207,11 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 #if __has_include(<LNSystemMarqueeLabel.h>)
 @interface LNSystemMarqueeLabel () <LNMarqueeLabel> @end
 #endif
+
+@interface _LNPopupBottomBarSupport : UIView @end
+
+@interface _LNPopupBarExtensionView : _LNPopupBarBackgroundView @end
+
+//@interface _LNPopupBarGlassGroupBackground : NSObject <UIObjectTraitDefinition> @end
 
 CF_EXTERN_C_END

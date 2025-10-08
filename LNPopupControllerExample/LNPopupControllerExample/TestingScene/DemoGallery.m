@@ -17,13 +17,13 @@
 @interface DemoGalleryToolbar : UIToolbar @end
 @implementation DemoGalleryToolbar @end
 
-@interface SizeClassGalleryCell : UITableViewCell
+@interface EnableableGalleryCell : UITableViewCell
 
 @property (nonatomic, getter=isEnabled) BOOL enabled;
 
 @end
 
-@implementation SizeClassGalleryCell
+@implementation EnableableGalleryCell
 
 -(void)setEnabled:(BOOL)enabled
 {
@@ -39,11 +39,37 @@
 	}
 }
 
+@end
+
+@interface SizeClassGalleryCell : EnableableGalleryCell @end
+
+@implementation SizeClassGalleryCell
+
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
 {
 	[super traitCollectionDidChange:previousTraitCollection];
 	
 	[self setEnabled:self.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassRegular];
+}
+
+@end
+
+@interface OS18GalleryCell : EnableableGalleryCell @end
+
+@implementation OS18GalleryCell
+
+- (void)awakeFromNib
+{
+	[super awakeFromNib];
+	
+	if(@available(iOS 18.0, *))
+	{
+		[self setEnabled:YES];
+	}
+	else
+	{
+		[self setEnabled:NO];
+	}
 }
 
 @end
@@ -69,6 +95,7 @@
 	
 	self.navigationController.popupBar.barStyle = LNPopupBarStyleFloating;
 	self.navigationController.popupBar.standardAppearance.marqueeScrollEnabled = YES;
+	self.navigationController.popupBar.standardAppearance.floatingBarShineEnabled = YES;
 
 	self.navigationController.view.tintColor = self.navigationController.navigationBar.tintColor;
 	[self.navigationController presentPopupBarWithContentViewController:_demoVC animated:NO completion:nil];

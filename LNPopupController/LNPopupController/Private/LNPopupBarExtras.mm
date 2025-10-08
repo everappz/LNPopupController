@@ -10,6 +10,7 @@
 #import "_LNPopupSwizzlingUtils.h"
 #import "_LNPopupBase64Utils.hh"
 #import "_LNPopupGlassUtils.h"
+#import "UIView+LNPopupSupportPrivate.h"
 
 #ifndef LNPopupControllerEnforceStrictClean
 static SEL _effectWithStyle_tintColor_invertAutomaticStyle_SEL;
@@ -35,7 +36,110 @@ static void __setupFunction(void)
 
 @end
 
-@implementation _LNPopupBarContentView @end
+@implementation _LNPopupBarContentView
+{
+	UIVisualEffectView* _shineEffectView;
+	UIView* _shineMask;
+	_LNPopupTransitionView* _shineTransitionView;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+	return [super initWithFrame:frame];
+}
+
+- (void)layoutSubviews
+{
+	[super layoutSubviews];
+	
+#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
+	if (@available(iOS 26.0, *))
+	{
+		if(self.isShiny)
+		{
+			[self _updateShine];
+		}
+		else
+		{
+			[_shineEffectView removeFromSuperview];
+			[_shineMask removeFromSuperview];
+			[_shineTransitionView removeFromSuperview];
+			_shineEffectView = nil;
+			_shineMask = nil;
+			_shineTransitionView = nil;
+		}
+	}
+#endif
+}
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
+- (void)setShiny:(BOOL)shiny
+{
+	if(_shiny == shiny)
+	{
+		return;
+	}
+	
+	_shiny = shiny;
+	[self setNeedsLayout];
+}
+
+- (void)_updateShine API_AVAILABLE(ios(26.0))
+{
+	CGFloat edge = 0;
+	
+	if(_shineEffectView == nil)
+	{
+		auto wrapper = [_LNPopupGlassWrapperEffect wrapperWithEffect:_LNPopupBorrowedGlassEffect.shineEffect];
+		wrapper.disableShadow = YES;
+		wrapper.disableInteractive = YES;
+		
+		_shineEffectView = [[UIVisualEffectView alloc] initWithEffect:wrapper];
+		_shineEffectView.clipsToBounds = YES;
+		_shineEffectView.userInteractionEnabled = NO;
+		[self addSubview:_shineEffectView];
+		
+		_shineMask = [UIView new];
+		_shineMask.backgroundColor = UIColor.clearColor;
+		_shineMask.layer.borderWidth = 1;
+		_shineMask.layer.borderColor = UIColor.whiteColor.CGColor;
+		
+		_shineTransitionView = [[_LNPopupTransitionView alloc] initWithSourceLayer:_shineEffectView.layer.superlayer];
+		_shineTransitionView.matchesTransform = NO;
+		_shineTransitionView.matchesPosition = NO;
+		_shineTransitionView.userInteractionEnabled = NO;
+		[self.effectView.contentView addSubview:_shineTransitionView];
+	}
+	
+	BOOL isMulti = [NSStringFromClass(_shineEffectView.layer.superlayer.class) containsString:@"Multi"];
+	if(isMulti && _shineTransitionView.sourceLayer != _shineEffectView.layer.superlayer)
+	{
+		_shineTransitionView.sourceLayer = _shineEffectView.layer.superlayer;
+		_shineEffectView.layer.superlayer.mask = _shineMask.layer;
+	}
+	
+	[self sendSubviewToBack:_shineEffectView];
+	[self.effectView.contentView bringSubviewToFront:_shineTransitionView];
+	
+	CGFloat tl = [self.effectView effectiveRadiusForCorner:UIRectCornerTopLeft] + edge;
+	CGFloat tr = [self.effectView effectiveRadiusForCorner:UIRectCornerTopRight] + edge;
+	CGFloat bl = [self.effectView effectiveRadiusForCorner:UIRectCornerBottomLeft] + edge;
+	CGFloat br = [self.effectView effectiveRadiusForCorner:UIRectCornerBottomRight] + edge;
+	
+	UICornerConfiguration* cornerConfiguration = [UICornerConfiguration configurationWithTopLeftRadius:[UICornerRadius fixedRadius:tl] topRightRadius:[UICornerRadius fixedRadius:tr] bottomLeftRadius:[UICornerRadius fixedRadius:bl] bottomRightRadius:[UICornerRadius fixedRadius:br]];
+	
+	_shineEffectView.frame = CGRectInset(self.bounds, -edge, -edge);
+	_shineEffectView.cornerConfiguration = cornerConfiguration;
+	
+	_shineTransitionView.frame = self.effectView.contentView.bounds;
+	
+	_shineMask.frame = _shineEffectView.bounds;
+	_shineMask.cornerConfiguration = cornerConfiguration;
+}
+
+#endif
+
+@end
 
 @implementation _LNPopupBarTitlesView @end
 
@@ -43,8 +147,9 @@ static void __setupFunction(void)
 
 + (instancetype)wrapperForLabel:(UILabel*)wrapped
 {
-	_LNPopupTitleLabelWrapper* rv = [[_LNPopupTitleLabelWrapper alloc] initWithFrame:wrapped.frame];
+	_LNPopupTitleLabelWrapper* rv = [[_LNPopupTitleLabelWrapper alloc] initWithFrame:wrapped.bounds];
 	rv.wrapped = wrapped;
+	rv.wrapped.translatesAutoresizingMaskIntoConstraints = NO;
 	
 	rv.translatesAutoresizingMaskIntoConstraints = wrapped.translatesAutoresizingMaskIntoConstraints;
 	[rv addSubview:wrapped];
@@ -72,16 +177,13 @@ static void __setupFunction(void)
 	if(UIView.inheritedAnimationDuration == 0.0)
 	{
 		_wrappedWidthConstraint.constant = bounds.size.width;
-		[_wrapped layoutSubviews];
+		[self layoutSubviews];
 	}
 	else
 	{
-		[UIView transitionWithView:_wrapped
-						  duration:UIView.inheritedAnimationDuration / 2.0
-						   options:UIViewAnimationOptionTransitionCrossDissolve | UIViewAnimationOptionCurveEaseOut
-						animations:^{
+		[UIView _ln_animatedUsingSwiftUIWithDuration:UIView.inheritedAnimationDuration animations:^{
 			_wrappedWidthConstraint.constant = bounds.size.width;
-			[_wrapped layoutSubviews];
+			[self layoutSubviews];
 		} completion:nil];
 	}
 }
@@ -275,3 +377,83 @@ static void __setupFunction(void)
 }
 
 @end
+
+/**
+ A helper view for view controllers without real bottom bars.
+ */
+@implementation _LNPopupBottomBarSupport
+{
+}
+
+- (nonnull instancetype)initWithFrame:(CGRect)frame
+{
+	self = [super initWithFrame:frame];
+	if(self)
+	{
+		self.userInteractionEnabled = NO;
+	}
+	return self;
+}
+
+#if DEBUG
+
+- (void)setFrame:(CGRect)frame
+{
+	[super setFrame:frame];
+}
+
+#endif
+
+@end
+
+@implementation _LNPopupBarExtensionView
+
+#if DEBUG
+
+- (void)didMoveToSuperview
+{
+	[super didMoveToSuperview];
+}
+
+- (void)setAlpha:(CGFloat)alpha
+{
+	[super setAlpha:alpha];
+}
+
+- (void)setHidden:(BOOL)hidden
+{
+	[super setHidden:hidden];
+}
+
+- (void)setFrame:(CGRect)frame
+{
+	[super setFrame:frame];
+}
+
+#endif
+
+@end
+
+//@implementation _LNPopupBarGlassGroupBackground
+//
+//+ (__kindof id<NSObject>)defaultValue
+//{
+//	return nil;
+//}
+//
+//+ (NSString*)identifier
+//{
+//	return @"UIGlassGroupTrait";
+//}
+//
+//+ (NSString*)name
+//{
+//	return @"GlassGroup";
+//}
+//
+//+ (BOOL)_isPrivate
+//{
+//	return YES;
+//}
+//
+//@end

@@ -12,6 +12,7 @@
 CF_EXTERN_C_BEGIN
 
 @class LNPopupController;
+@class _LNPopupBottomBarSupport;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -30,8 +31,6 @@ extern BOOL __ln_popup_suppressViewControllerLifecycle;
 
 UIEdgeInsets _LNPopupSafeAreaInsets(id self);
 void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller, BOOL layout, UIEdgeInsets popupEdgeInsets);
-
-@interface _LNPopupBottomBarSupport : UIView @end
 
 @interface UIViewController (LNPopupSupport)
 
@@ -61,6 +60,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 - (CGRect)defaultFrameForBottomDockingView_internal;
 - (CGRect)_defaultFrameForBottomDockingViewForPopupBar:(LNPopupBar*)LNPopupBar;
 
+- (nullable UIView *)bottomDockingViewForPopup_internal;
 - (nullable UIView *)bottomDockingViewForPopup_nocreateOrDeveloper;
 - (nonnull UIView *)bottomDockingViewForPopup_internalOrDeveloper;
 
@@ -101,9 +101,18 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_layoutPopupBarOrderForUse;
 
+- (void)_ln_updatePopupBarContainerInsets;
+- (void)_ln_layoutPopupBarAndContent;
+
 @end
 
 @interface _LN_UIViewController_AppearanceControl : UIViewController @end
+
+@interface UITabBarController (LNPopupSupportPrivate)
+
+- (BOOL)_ln_isFloatingTabBar;
+
+@end
 
 NS_ASSUME_NONNULL_END
 

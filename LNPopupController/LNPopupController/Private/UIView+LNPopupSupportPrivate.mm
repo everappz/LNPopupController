@@ -766,6 +766,14 @@ static const void* LNPopupIgnoringLayoutDuringTransition = &LNPopupIgnoringLayou
 				orig(_self, sel, animated);
 			}));
 		}
+		
+		if(LNPopupEnvironmentHasGlass())
+		{
+			Method m = LNSwizzleClassGetInstanceMethod(self, NSSelectorFromString(LNPopupHiddenString("_isPhotosApp")));
+			method_setImplementation(m, imp_implementationWithBlock(^ BOOL (id _self) {
+				return YES;
+			}));
+		}
 #endif
 	}
 }
@@ -909,7 +917,7 @@ static NSString* __ln_queueingScrollViewClassPrefix = LNPopupHiddenString("Queu"
 {
 	BOOL rv = self.contentSize.height > self._ln_adjustedBounds.size.height;
 	
-//	NSLog(@"_ln_hasVerticalContent: %@ contentSize: %@ adjustedBounds: %@ ajustedInsets: %@", @(rv), @(self.contentSize), @(self._ln_adjustedBounds), @(self.adjustedContentInset));
+//	NSLog(@"_ln_hasVerticalContent: %@ contentSize: %@ adjustedBounds: %@ adjustedInsets: %@", @(rv), @(self.contentSize), @(self._ln_adjustedBounds), @(self.adjustedContentInset));
 	
 	return rv;
 }

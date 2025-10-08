@@ -28,6 +28,8 @@
 		39837A241B758541004D2DA9 /* DemoMusicPlayerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39837A231B758541004D2DA9 /* DemoMusicPlayerController.swift */; };
 		39837A261B759721004D2DA9 /* PortraitTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39837A251B759721004D2DA9 /* PortraitTabBarController.swift */; };
 		3985DE602549539B00CD76EE /* IntroWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3985DE5F2549539B00CD76EE /* IntroWebViewController.m */; };
+		3987A4C22E86E42D0090E273 /* DemoMusicSearchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3987A4C12E86E42D0090E273 /* DemoMusicSearchController.swift */; };
+		3987A4C32E86E42D0090E273 /* DemoMusicSearchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3987A4C12E86E42D0090E273 /* DemoMusicSearchController.swift */; };
 		3988E3581B59C3000039C09B /* DemoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3988E3571B59C3000039C09B /* DemoViewController.m */; };
 		399748721D5652250079492B /* DemoPopupContentViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 399748711D5652250079492B /* DemoPopupContentViewController.m */; };
 		39988C762AA1557F00C3BB04 /* SafeSystemImages.m in Sources */ = {isa = PBXBuildFile; fileRef = 39988C752AA1557F00C3BB04 /* SafeSystemImages.m */; };
@@ -65,6 +67,10 @@
 		39DB61801B8891ED001BFF8F /* LNPopupController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39DB52F51B5823490061C589 /* LNPopupController.framework */; };
 		39DB61811B8891ED001BFF8F /* LNPopupController.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 39DB52F51B5823490061C589 /* LNPopupController.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		39DDA0AE230D5F63007DCCD8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39DDA0AD230D5F63007DCCD8 /* MapKit.framework */; };
+		39F031B02E8FC0DD0079F2FD /* CustomContainer.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 39F031AF2E8FC0DD0079F2FD /* CustomContainer.storyboard */; };
+		39F031B12E8FC0DD0079F2FD /* CustomContainer.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 39F031AF2E8FC0DD0079F2FD /* CustomContainer.storyboard */; };
+		39F031B32E8FC2770079F2FD /* CustomContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F031B22E8FC2770079F2FD /* CustomContainerController.swift */; };
+		39F031B42E8FC2770079F2FD /* CustomContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F031B22E8FC2770079F2FD /* CustomContainerController.swift */; };
 		39FAFC3724E71A6C008BBC2D /* DemoAlbumTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397C56271B7538A5007A67F0 /* DemoAlbumTableViewController.swift */; };
 		39FAFC3824E71A6C008BBC2D /* DemoMusicPlayerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39837A231B758541004D2DA9 /* DemoMusicPlayerController.swift */; };
 		39FAFC3924E71A6C008BBC2D /* CustomMapBarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393F23261E16C192000E969D /* CustomMapBarViewController.swift */; };
@@ -147,6 +153,7 @@
 		393F23281E16CF90000E969D /* LocationsController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationsController.swift; sourceTree = "<group>"; };
 		394E1AA5276C014900C5BE31 /* LNPopupDemoContextMenuInteraction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LNPopupDemoContextMenuInteraction.h; sourceTree = "<group>"; };
 		394E1AA6276C014900C5BE31 /* LNPopupDemoContextMenuInteraction.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LNPopupDemoContextMenuInteraction.m; sourceTree = "<group>"; };
+		3951F7D62E884EC3009FD602 /* RevealServer.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2V82U7HN27:Itty Bitty Labs Pty Ltd"; lastKnownFileType = wrapper.xcframework; name = RevealServer.xcframework; path = "../../../../Library/Application Support/Reveal/RevealServer/RevealServer.xcframework"; sourceTree = "<group>"; };
 		39631FAB230DA03D0059D119 /* SceneDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
 		39631FAC230DA03E0059D119 /* SceneDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
 		39756325254ED9EB0066981E /* DemoGallery.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoGallery.h; sourceTree = "<group>"; };
@@ -159,6 +166,7 @@
 		39837A251B759721004D2DA9 /* PortraitTabBarController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PortraitTabBarController.swift; sourceTree = "<group>"; };
 		3985DE5E2549539B00CD76EE /* IntroWebViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IntroWebViewController.h; sourceTree = "<group>"; };
 		3985DE5F2549539B00CD76EE /* IntroWebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IntroWebViewController.m; sourceTree = "<group>"; };
+		3987A4C12E86E42D0090E273 /* DemoMusicSearchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoMusicSearchController.swift; sourceTree = "<group>"; };
 		3988E3571B59C3000039C09B /* DemoViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DemoViewController.m; sourceTree = "<group>"; tabWidth = 4; };
 		399748701D5652250079492B /* DemoPopupContentViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DemoPopupContentViewController.h; sourceTree = "<group>"; };
 		399748711D5652250079492B /* DemoPopupContentViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DemoPopupContentViewController.m; sourceTree = "<group>"; };
@@ -182,6 +190,8 @@
 		39D6C8BA2B2D02B500F53E70 /* SettingsViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsViewController.swift; path = ../../../LNPopupSettings/SettingsViewController.swift; sourceTree = "<group>"; };
 		39DB52F01B5823480061C589 /* LNPopupController.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LNPopupController.xcodeproj; path = ../LNPopupController/LNPopupController.xcodeproj; sourceTree = "<group>"; };
 		39DDA0AD230D5F63007DCCD8 /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		39F031AF2E8FC0DD0079F2FD /* CustomContainer.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = CustomContainer.storyboard; sourceTree = "<group>"; };
+		39F031B22E8FC2770079F2FD /* CustomContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomContainerController.swift; sourceTree = "<group>"; };
 		39FAFC5724E71A6C008BBC2D /* LNPopupControllerExampleNoPopup.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LNPopupControllerExampleNoPopup.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		39FAFC5824E71A6C008BBC2D /* LNPopupControllerExampleNoPopup-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "LNPopupControllerExampleNoPopup-Info.plist"; path = "../LNPopupControllerExampleNoPopup-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -253,6 +263,7 @@
 				397C560C1B74D747007A67F0 /* Demo - Music Scene (Swift) */,
 				393F23211E16BEF5000E969D /* Demo - Custom Pupup Bar Scene (Swift) */,
 				39BBA86324FEC16600D9712A /* Demo - Custom Pupup Bar Scene - Manual Layout (Swift) */,
+				39F031AE2E8FC0420079F2FD /* Demo - Custom Container */,
 				3908C3491E7C9E8A00451B5D /* Settings */,
 				39837A221B756F9B004D2DA9 /* Utils */,
 				39277A071B58228000293F95 /* Supporting Files */,
@@ -330,6 +341,7 @@
 				39B0DFF52B1819EF008CCF36 /* Music.storyboard */,
 				397C56271B7538A5007A67F0 /* DemoAlbumTableViewController.swift */,
 				39837A231B758541004D2DA9 /* DemoMusicPlayerController.swift */,
+				3987A4C12E86E42D0090E273 /* DemoMusicSearchController.swift */,
 				397C56291B753A45007A67F0 /* MusicCell.swift */,
 				39837A251B759721004D2DA9 /* PortraitTabBarController.swift */,
 			);
@@ -369,9 +381,20 @@
 		39DDA0AC230D5F63007DCCD8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				3951F7D62E884EC3009FD602 /* RevealServer.xcframework */,
 				39DDA0AD230D5F63007DCCD8 /* MapKit.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		39F031AE2E8FC0420079F2FD /* Demo - Custom Container */ = {
+			isa = PBXGroup;
+			children = (
+				39F031AF2E8FC0DD0079F2FD /* CustomContainer.storyboard */,
+				39F031B22E8FC2770079F2FD /* CustomContainerController.swift */,
+			);
+			name = "Demo - Custom Container";
+			path = CustomContainer;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -389,7 +412,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				39114EDB26E2BF8B004FC75B /* PBXTargetDependency */,
 				39114EDD26E2BF8B004FC75B /* PBXTargetDependency */,
 				39114EDF26E2BF8B004FC75B /* PBXTargetDependency */,
 				39DB61831B8891EE001BFF8F /* PBXTargetDependency */,
@@ -495,6 +517,7 @@
 				392E2AC52AD5CAB600944CB2 /* LaunchScreen.storyboard in Resources */,
 				39277A171B58228000293F95 /* Assets.xcassets in Resources */,
 				39277A151B58228000293F95 /* Main.storyboard in Resources */,
+				39F031B02E8FC0DD0079F2FD /* CustomContainer.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -507,6 +530,7 @@
 				39B0DFE72B1819A9008CCF36 /* MapScene.storyboard in Resources */,
 				39B0DFEB2B1819BC008CCF36 /* Settings.storyboard in Resources */,
 				39FAFC4F24E71A6C008BBC2D /* Assets.xcassets in Resources */,
+				39F031B12E8FC0DD0079F2FD /* CustomContainer.storyboard in Resources */,
 				39FAFC5024E71A6C008BBC2D /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -519,12 +543,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				39BBA86924FEC32F00D9712A /* ManualLayoutCustomBarViewController.swift in Sources */,
+				3987A4C22E86E42D0090E273 /* DemoMusicSearchController.swift in Sources */,
 				39756327254ED9EB0066981E /* DemoGallery.m in Sources */,
 				397C56281B7538A5007A67F0 /* DemoAlbumTableViewController.swift in Sources */,
 				39837A241B758541004D2DA9 /* DemoMusicPlayerController.swift in Sources */,
 				39988C762AA1557F00C3BB04 /* SafeSystemImages.m in Sources */,
 				393F23271E16C192000E969D /* CustomMapBarViewController.swift in Sources */,
 				39A3B58B230D400B00E10425 /* LNSplitViewController.m in Sources */,
+				39F031B42E8FC2770079F2FD /* CustomContainerController.swift in Sources */,
 				39277A0C1B58228000293F95 /* AppDelegate.m in Sources */,
 				39B645F02CA61B0200AB038B /* ScrollingMapViewController.swift in Sources */,
 				394E1AA7276C014900C5BE31 /* LNPopupDemoContextMenuInteraction.m in Sources */,
@@ -561,6 +587,8 @@
 				39FAFC3924E71A6C008BBC2D /* CustomMapBarViewController.swift in Sources */,
 				39FAFC3B24E71A6C008BBC2D /* LNSplitViewController.m in Sources */,
 				39FAFC3C24E71A6C008BBC2D /* AppDelegate.m in Sources */,
+				39F031B32E8FC2770079F2FD /* CustomContainerController.swift in Sources */,
+				3987A4C32E86E42D0090E273 /* DemoMusicSearchController.swift in Sources */,
 				39FAFC3E24E71A6C008BBC2D /* main.m in Sources */,
 				39FAFC3F24E71A6C008BBC2D /* RandomColors.m in Sources */,
 				39FAFC4024E71A6C008BBC2D /* LocationsController.swift in Sources */,
@@ -580,10 +608,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		39114EDB26E2BF8B004FC75B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = 39114EDA26E2BF8B004FC75B /* LoremIpsum */;
-		};
 		39114EDD26E2BF8B004FC75B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			productRef = 39114EDC26E2BF8B004FC75B /* LNTouchVisualizer */;
@@ -962,11 +986,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		39114EDA26E2BF8B004FC75B /* LoremIpsum */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3980E7FA26DEBCAF00AC0728 /* XCRemoteSwiftPackageReference "LoremIpsum" */;
-			productName = LoremIpsum;
-		};
 		39114EDC26E2BF8B004FC75B /* LNTouchVisualizer */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 39114EC826E2B0D9004FC75B /* XCRemoteSwiftPackageReference "LNTouchVisualizer" */;

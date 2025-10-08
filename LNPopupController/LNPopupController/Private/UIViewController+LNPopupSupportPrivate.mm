@@ -11,6 +11,7 @@
 #import "_LNPopupSwizzlingUtils.h"
 #import "_LNPopupBase64Utils.hh"
 #import "UIView+LNPopupSupportPrivate.h"
+#import "UITabBar+LNPopupMinimizationSupport.h"
 
 CF_EXTERN_C_BEGIN
 extern void __ln_doNotCall__fixUIHostingViewHitTest(void) noexcept;
@@ -37,25 +38,6 @@ BOOL __ln_popup_suppressViewControllerLifecycle = NO;
 
 @end
 @implementation __LNFakeContext @end
-
-@interface _LNPopupBarExtensionView : _LNPopupBarBackgroundView @end
-@implementation _LNPopupBarExtensionView
-
-#if DEBUG
-
-- (void)didMoveToSuperview
-{
-	[super didMoveToSuperview];
-}
-
-- (void)setAlpha:(CGFloat)alpha
-{
-	[super setAlpha:alpha];
-}
-
-#endif
-
-@end
 
 @interface NSObject ()
 
@@ -89,26 +71,6 @@ static NSTimeInterval __ln_tabBarTransitionDuration(UIViewController* vc, NSUInt
 	return 0.5;
 #endif
 }
-
-/**
- A helper view for view controllers without real bottom bars.
- */
-@implementation _LNPopupBottomBarSupport
-{
-}
-
-- (nonnull instancetype)initWithFrame:(CGRect)frame
-{
-	self = [super initWithFrame:frame];
-	if(self)
-	{
-		self.userInteractionEnabled = NO;
-//		self.hidden = YES;
-	}
-	return self;
-}
-
-@end
 
 #ifndef LNPopupControllerEnforceStrictClean
 static id __accessibilityBundleLoadObserver;
@@ -579,7 +541,10 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 		return;
 	}
 	
-	[self _uCOIFPIN];
+	if(!LNPopupEnvironmentHasGlass() || __ln_alreadyInHideShowBar == NO)
+	{
+		[self _uCOIFPIN];
+	}
 	
 	if(@available(iOS 17.0, *))
 	{
@@ -667,8 +632,7 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 	LNPopupBar* popupBar = self._ln_popupController_nocreate.popupBar;
 	UIView* parentForPopupBar = bottomBar.superview != nil ? bottomBar.superview : popupBar.superview;
 	
-	[bottomBar.superview bringSubviewToFront:bottomBar];
-	if(popupBar.resolvedIsFloating)
+	if(!LNPopupEnvironmentHasGlass() && popupBar.resolvedIsFloating)
 	{
 		[parentForPopupBar insertSubview:popupBar aboveSubview:bottomBar];
 	}
@@ -677,7 +641,7 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 		[parentForPopupBar insertSubview:popupBar belowSubview:bottomBar];
 	}
 	[parentForPopupBar insertSubview:self._ln_bottomBarExtension_nocreate belowSubview:popupBar];
-	[parentForPopupBar insertSubview:self._ln_popupController_nocreate.popupContentView aboveSubview:popupBar];
+	[parentForPopupBar insertSubview:self._ln_popupController_nocreate.popupContentView aboveSubview:bottomBar];
 	if(popupBar.os26TransitionView != nil)
 	{
 		[parentForPopupBar insertSubview:popupBar.os26TransitionView aboveSubview:popupBar];
@@ -756,10 +720,36 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 	[self _ln_popup_viewDidDisappear:animated];
 }
 
-- (void)_ln_popup_viewDidLayoutSubviews
+- (void)_ln_updatePopupBarContainerInsets
 {
-	[self _ln_popup_viewDidLayoutSubviews];
+	CGFloat offset = [self _ln_popupOffsetForPopupBar:self.popupBar];
+	CGFloat realHeight = _LNPopupBarHeightForPopupBar(self.popupBar);
+	CGFloat barHeightToUse;
 	
+	if((self._ln_popupController_nocreate.popupControllerPublicState == LNPopupPresentationStateBarPresented && self._ln_popupController_nocreate.popupControllerTargetState >= self._ln_popupController_nocreate.popupControllerPublicState) || self._ln_popupController_nocreate.popupControllerPublicState == LNPopupPresentationStateOpen)
+	{
+		//Use real bar height and offset
+		barHeightToUse = realHeight - offset;
+	}
+	else
+	{
+		//Use frame size and relative offset for animating popup bar presentation/dismiss.
+		barHeightToUse = self.popupBar.frame.size.height - (self.popupBar.frame.size.height / realHeight) * offset;
+	}
+	
+	UIEdgeInsets neededInsets = UIEdgeInsetsMake(0, 0, MAX(0, barHeightToUse), 0);
+	
+	UIEdgeInsets safe = _LNPopupSafeAreaInsets(self);
+	UIEdgeInsets childAdditive = _LNPopupChildAdditiveSafeAreas(self);
+	
+	if(neededInsets.bottom != MAX(safe.bottom, childAdditive.bottom))
+	{
+		_LNPopupSupportSetPopupInsetsForViewController(self, YES, neededInsets);
+	}
+}
+
+- (void)_ln_layoutPopupBarAndContent
+{
 	if(self._ln_popupController_nocreate.popupControllerInternalState > LNPopupPresentationStateBarHidden)
 	{
 		if(self.bottomDockingViewForPopup_nocreateOrDeveloper == self._ln_bottomBarSupport_nocreate)
@@ -774,7 +764,7 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 			self._ln_bottomBarSupport_nocreate.hidden = YES;
 		}
 		
-		if([self isKindOfClass:UINavigationController.class] == NO && [self isKindOfClass:UITabBarController.class] == NO)
+		if(self.bottomDockingViewForPopupBar != nil || ([self isKindOfClass:UINavigationController.class] == NO && [self isKindOfClass:UITabBarController.class] == NO))
 		{
 			self._ln_popupController_nocreate.popupBar.backgroundView.alpha = self._ln_popupController_nocreate.popupBar.resolvedIsFloating ? 0.0 : 1.0;
 		}
@@ -791,30 +781,7 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 		
 		if(self._ln_popupController_nocreate.popupControllerInternalState != LNPopupPresentationStateBarHidden)
 		{
-			CGFloat offset = [self _ln_popupOffsetForPopupBar:self.popupBar];
-			CGFloat realHeight = _LNPopupBarHeightForPopupBar(self.popupBar);
-			CGFloat barHeightToUse;
-			
-			if((self._ln_popupController_nocreate.popupControllerPublicState == LNPopupPresentationStateBarPresented && self._ln_popupController_nocreate.popupControllerTargetState >= self._ln_popupController_nocreate.popupControllerPublicState) || self._ln_popupController_nocreate.popupControllerPublicState == LNPopupPresentationStateOpen)
-			{
-				//Use real bar height and offset
-				barHeightToUse = realHeight - offset;
-			}
-			else
-			{
-				//Use frame size and relative offset for animating popup bar presentation/dismiss.
-				barHeightToUse = self.popupBar.frame.size.height - (self.popupBar.frame.size.height / realHeight) * offset;
-			}
-			
-			UIEdgeInsets neededInsets = UIEdgeInsetsMake(0, 0, MAX(0, barHeightToUse), 0);
-			
-			UIEdgeInsets safe = _LNPopupSafeAreaInsets(self);
-			UIEdgeInsets childAdditive = _LNPopupChildAdditiveSafeAreas(self);
-			
-			if(neededInsets.bottom != MAX(safe.bottom, childAdditive.bottom))
-			{
-				_LNPopupSupportSetPopupInsetsForViewController(self, YES, neededInsets);
-			}
+			[self _ln_updatePopupBarContainerInsets];
 		}
 	}
 	
@@ -828,13 +795,48 @@ UIEdgeInsets _LNPopupChildAdditiveSafeAreas(id self)
 	{
 		removeFromSuperview();
 	}
-	else if([self isKindOfClass:UINavigationController.class] == NO && [self isKindOfClass:UITabBarController.class] == NO)
+	else if(self.bottomDockingViewForPopupBar != nil && self.isBottomDockingViewForPopupBarHidden)
 	{
 		if([extensionView.layer.animationKeys containsObject:@"opacity"] == NO)
 		{
 			extensionView.alpha = 1.0;
 		}
 	}
+}
+
+- (void)_ln_popup_viewDidLayoutSubviews
+{
+	[self _ln_popup_viewDidLayoutSubviews];
+	
+	if(self.bottomDockingViewForPopupBar != nil && self.shouldExtendPopupBarUnderSafeArea)
+	{
+		self._ln_bottomBarExtension.frame = [self defaultFrameForBottomDockingView_internal];
+		
+		BOOL newValue = !self.isBottomDockingViewForPopupBarHidden;
+		if(self._ln_bottomBarExtension_nocreate.isHidden != newValue)
+		{
+			//Best effort to animate the extension.
+			if(newValue == YES)
+			{
+				[UIView animateWithDuration:0.2 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
+					self._ln_bottomBarExtension_nocreate.alpha = 0.0;
+				} completion:^(BOOL finished) {
+					self._ln_bottomBarExtension_nocreate.hidden = newValue;
+					self._ln_bottomBarExtension_nocreate.alpha = 1.0;
+				}];
+			}
+			else
+			{
+				self._ln_bottomBarExtension_nocreate.alpha = 0.0;
+				self._ln_bottomBarExtension_nocreate.hidden = newValue;
+				[UIView animateWithDuration:0.2 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
+					self._ln_bottomBarExtension_nocreate.alpha = 1.0;
+				} completion:nil];
+			}
+		}
+	}
+	
+	[self _ln_layoutPopupBarAndContent];
 }
 
 - (BOOL)_ignoringLayoutDuringTransition
@@ -970,28 +972,23 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 #pragma mark - UITabBarController
 
-@interface UITabBarController (LNPopupSupportPrivate) @end
 @implementation UITabBarController (LNPopupSupportPrivate)
 
 - (void)_layoutModernTabBarControllerFloatingPopupWithSuperFallback:(void(^)(void))superFallback API_AVAILABLE(ios(26.0))
 {
-	void (^traditionalTabBarFallback)(void) = ^
+	LNPopupBar* popupBar = self._ln_popupController_nocreate.popupBar;
+
+	static NSString* className = LNPopupHiddenString("Container");
+	NSUInteger idx = [self.view.subviews indexOfObjectPassingTest:^BOOL(__kindof UIView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+		return [NSStringFromClass(obj.class) containsString:className];
+	}];
+	
+	if(idx == NSNotFound)
 	{
-//		NSUInteger idx = [self.view.subviews indexOfObjectPassingTest:^BOOL(__kindof UIView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-//			return [obj _ln_isAncestorOfView:self.tabBar];
-//		}];
-		
-		static NSString* className = LNPopupHiddenString("Container");
-		NSUInteger idx = [self.view.subviews indexOfObjectPassingTest:^BOOL(__kindof UIView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-			return [NSStringFromClass(obj.class) containsString:className];
-		}];
-		
-		if(idx == NSNotFound)
-		{
-			superFallback();
-			return;
-		}
-		
+		superFallback();
+	}
+	else
+	{
 		UIView* tabBarContainer = [self.view.subviews objectAtIndex:idx];
 		
 		[self.view insertSubview:self._ln_popupController_nocreate.popupBar belowSubview:tabBarContainer];
@@ -1000,40 +997,21 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		{
 			[self.view insertSubview:self._ln_popupController_nocreate.popupBar.os26TransitionView aboveSubview:self._ln_popupController_nocreate.popupBar];
 		}
-		
-		return;
-	};
-	
-	LNPopupBar* popupBar = self._ln_popupController_nocreate.popupBar;
-	NSDirectionalEdgeInsets barInsets = NSDirectionalEdgeInsetsZero;
-	
-	static NSString* outlineViewKey = LNPopupHiddenString("_outlineView");
-	UIView* outlineView = [self.sidebar valueForKey:outlineViewKey];
-
-	if(outlineView != nil)
-	{
-		static NSString* tabContainerViewKey = LNPopupHiddenString("visualStyle.tabContainerView");
-		UIView* parentForPopupBar = [self valueForKeyPath:tabContainerViewKey];
-		
-		static NSString* sidebarLayoutKey = LNPopupHiddenString("sidebarLayout");
-		
-		NSUInteger sidebarLayout = [[parentForPopupBar valueForKey:sidebarLayoutKey] unsignedIntegerValue];
-		
-		if(sidebarLayout == 2)
-		{
-			barInsets = NSDirectionalEdgeInsetsMake(0, self.sidebar.isHidden ? 0 : outlineView.bounds.size.width + 8, 0, 0);
-		}
 	}
 	
-	traditionalTabBarFallback();
-	
-	popupBar._hackyMargins = barInsets;
-	
+	popupBar._hackyMargins = [self _ln_popupBarMarginsForPopupBar:popupBar];
 	[popupBar layoutIfNeeded];
 }
 
 - (void)_layoutPopupBarOrderForTransition
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		[super _layoutPopupBarOrderForTransition];
+		return;
+	}
+	
 	if(!LNPopupEnvironmentHasGlass())
 	{
 		[super _layoutPopupBarOrderForTransition];
@@ -1048,6 +1026,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_layoutPopupBarOrderForUse
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		[super _layoutPopupBarOrderForUse];
+		return;
+	}
+	
 	void (^legacy)(void) = ^
 	{
 		if(@available(iOS 18.0, *))
@@ -1065,21 +1050,16 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 				return;
 			}
 			
-			static NSString* tabContainerViewKey = LNPopupHiddenString("visualStyle.tabContainerView");
-			UIView* parentForPopupBar = [self valueForKeyPath:tabContainerViewKey];
-			
-			static NSString* sidebarLayoutKey = LNPopupHiddenString("sidebarLayout");
-			
-			NSUInteger sidebarLayout = [[parentForPopupBar valueForKey:sidebarLayoutKey] unsignedIntegerValue];
-			
-			if(sidebarLayout == 0)
+			popupBar._hackyMargins = [self _ln_popupBarMarginsForPopupBar:popupBar];
+			if(popupBar._hackyMargins.leading > 0)
 			{
-				popupBar._hackyMargins = NSDirectionalEdgeInsetsMake(0, self.sidebar.isHidden ? 0 : outlineView.bounds.size.width, 0, 0);
 				[super _layoutPopupBarOrderForUse];
 				[popupBar layoutIfNeeded];
 				return;
 			}
 			
+			static NSString* tabContainerViewKey = LNPopupHiddenString("visualStyle.tabContainerView");
+			UIView* parentForPopupBar = [self valueForKeyPath:tabContainerViewKey];
 			[parentForPopupBar insertSubview:popupBar atIndex:0];
 			[parentForPopupBar insertSubview:self._ln_bottomBarExtension_nocreate belowSubview:popupBar];
 			[parentForPopupBar insertSubview:self._ln_popupController_nocreate.popupContentView atIndex:parentForPopupBar.subviews.count];
@@ -1124,19 +1104,14 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	objc_setAssociatedObject(self, LNPopupIgnorePrepareTabBar, @(isPrepareTabBarIgnored), OBJC_ASSOCIATION_RETAIN);
 }
 
-- (nullable UIView *)bottomDockingViewForPopup_nocreate
-{
-	return self.tabBar;
-}
-
-- (nullable UIView *)bottomDockingViewForPopupBar
+- (nullable UIView *)bottomDockingViewForPopup_internal
 {
 	return self.tabBar;
 }
 
 - (UIEdgeInsets)insetsForBottomDockingView
 {
-	if(LNPopupEnvironmentHasGlass())
+	if(self.bottomDockingViewForPopupBar != nil || LNPopupEnvironmentHasGlass())
 	{
 		return UIEdgeInsetsZero;
 	}
@@ -1146,9 +1121,20 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (CGFloat)_ln_popupOffsetForPopupBar:(LNPopupBar *)popupBar
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		return [super _ln_popupOffsetForPopupBar:popupBar];
+	}
+	
 	if(self._isTabBarHiddenDuringTransition)
 	{
 		return [super _ln_popupOffsetForPopupBar:popupBar];
+	}
+	
+	if(LNPopupEnvironmentTabBarSupportsMinimizationAPI() && popupBar.supportsMinimization && self._ln_isFloatingTabBar == NO && (popupBar.resolvedIsCustom == NO || popupBar.customBarWantsFullBarWidth == NO))
+	{
+		CGRect proposedFrame = self.tabBar._ln_proposedFrameForPopupBar;
+		return proposedFrame.origin.y + proposedFrame.size.height;
 	}
 	
 	if(LNPopupEnvironmentHasGlass())
@@ -1164,9 +1150,9 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	return YES;
 }
 
-- (CGRect)defaultFrameForBottomDockingView
+- (CGRect)defaultFrameForBottomDockingView_internal
 {
-	if(LNPopupEnvironmentHasGlass() && self._isTabBarHiddenDuringTransition)
+	if(self.bottomDockingViewForPopupBar != nil || (LNPopupEnvironmentHasGlass() && self._isTabBarHiddenDuringTransition))
 	{
 		return super.defaultFrameForBottomDockingView_internal;
 	}
@@ -1248,7 +1234,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_ln_popup_viewDidLayoutSubviews_tvc
 {
-	if(self._ln_popupController_nocreate.popupControllerInternalState != LNPopupPresentationStateBarHidden)
+	if(self.bottomDockingViewForPopupBar == nil && self._ln_popupController_nocreate.popupControllerInternalState != LNPopupPresentationStateBarHidden)
 	{
 		if(self.tabBar.isHidden == NO && self._isTabBarHiddenDuringTransition == NO && self._ignoringLayoutDuringTransition == NO && self._ln_isFloatingTabBar == NO)
 		{
@@ -1282,9 +1268,9 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		[UIViewController class]
 	};
 	void (*super_call)(struct objc_super*, SEL) = (void (*)(struct objc_super*, SEL))objc_msgSendSuper;
-	super_call(&superInfo, @selector(viewDidLayoutSubviews));
+	super_call(&superInfo, _cmd);
 	
-	if(self._ignoringLayoutDuringTransition == NO)
+	if(self.bottomDockingViewForPopupBar == nil && self._ignoringLayoutDuringTransition == NO)
 	{
 		CGFloat bottomSafeArea = self.view.superview.safeAreaInsets.bottom;
 		CGRect frame = CGRectMake(0, self.view.bounds.size.height - bottomSafeArea, self.view.bounds.size.width, bottomSafeArea);
@@ -1394,7 +1380,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (BOOL)_ln_isFloatingTabBar
 {
-	if(unavailable(iOS 18.0, *))
+	if(ln_unavailable(iOS 18.0, *))
 	{
 		return NO;
 	}
@@ -1409,6 +1395,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_ln_hideLogicWithTransition:(NSInteger)transition isExplicit:(BOOL)isExplicit duration:(NSTimeInterval)duration superCall:(void(^)(void))superCall
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		superCall();
+		return;
+	}
+	
 	if(self._ln_popupController_nocreate.popupControllerInternalState == LNPopupPresentationStateBarHidden || self._ln_isFloatingTabBar == YES)
 	{
 		[self _setTabBarHiddenDuringTransition:YES];
@@ -1506,9 +1499,6 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	self._ln_bottomBarExtension_nocreate.alpha = 1.0;
 	
 	void (^animations)(id<UIViewControllerTransitionCoordinatorContext>) = ^ (id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-		[self._ln_popupController_nocreate _popupBarMetricsDidChange:self._ln_popupController_nocreate.popupBar shouldLayout:NO];
-		//During the transition, animate the popup bar and content together with the tab bar transition.
-		[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerInternalState];
 		[self _setTabBarHiddenDuringTransition:YES];
 		
 		CGFloat barOffset = [self _ln_popupOffsetForPopupBar:self._ln_popupController_nocreate.popupBar];
@@ -1535,15 +1525,20 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 			
 			if(transition == 1)
 			{
-				self._ln_popupController_nocreate.popupBar.backgroundView.frame = CGRectOffset(backgroundViewFrame, (isRTL ? 1 : -1) * CGRectGetWidth(backgroundViewFrame), -CGRectGetHeight(frame) + bottomSafeArea - barOffset);
+				self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = CGRectOffset(backgroundViewFrame, (isRTL ? 1 : -1) * CGRectGetWidth(backgroundViewFrame), -CGRectGetHeight(frame) + bottomSafeArea - barOffset);
 				self._ln_popupController_nocreate.popupBar.backgroundView.transitionShadingView.alpha = 1.0;
 			}
 			else
 			{
-				self._ln_popupController_nocreate.popupBar.backgroundView.frame = CGRectOffset(backgroundViewFrame, 0, bottomSafeArea - barOffset);
+				self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = CGRectOffset(backgroundViewFrame, 0, bottomSafeArea - barOffset);
 				self._ln_popupController_nocreate.popupBar.backgroundView.alpha = 0.0;
 			}
 		}
+		
+		[self._ln_popupController_nocreate.popupBar layoutIfNeeded];
+		[self._ln_popupController_nocreate _popupBarMetricsDidChange:self._ln_popupController_nocreate.popupBar shouldLayout:NO];
+		//During the transition, animate the popup bar and content together with the tab bar transition.
+		[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerInternalState];
 	};
 	
 	void (^completion)(id<UIViewControllerTransitionCoordinatorContext>) = ^ (id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
@@ -1578,7 +1573,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 			self._ln_popupController_nocreate.popupBar.effectGroupingIdentifier = effectGroupingIdentifier;
 		}
 		
-		self._ln_popupController_nocreate.popupBar.backgroundView.frame = backgroundViewFrame;
+		self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = CGRectZero;
 		
 		[self _layoutPopupBarOrderForUse];
 	};
@@ -1588,6 +1583,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_ln_showLogicWithTransition:(NSInteger)transition isExplicit:(BOOL)isExplicit duration:(NSTimeInterval)duration superCall:(void(^)(void))superCall
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		superCall();
+		return;
+	}
+	
 	if(__ln_alreadyInHideShowBar == YES)
 	{
 		//Ignore nested calls to _showBarWithTransition:isExplicit:duration:
@@ -1719,7 +1721,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		}
 		if(isFloating)
 		{
-			self._ln_popupController_nocreate.popupBar.backgroundView.frame = backgroundViewFrame;
+			self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = backgroundViewFrame;
 			self._ln_popupController_nocreate.popupBar.backgroundView.alpha = 1.0;
 			if(transition == 2)
 			{
@@ -1733,6 +1735,8 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		[self._ln_popupController_nocreate _popupBarMetricsDidChange:self._ln_popupController_nocreate.popupBar shouldLayout:NO];
 		//During the transition, animate the popup bar and content together with the tab bar transition.
 		[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerInternalState];
+		
+		[self._ln_popupController_nocreate.popupBar layoutIfNeeded];
 	};
 	
 	void (^completion)(id<UIViewControllerTransitionCoordinatorContext>) = ^ (id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
@@ -1752,7 +1756,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 		
 		if(isFloating)
 		{
-			self._ln_popupController_nocreate.popupBar.backgroundView.frame = backgroundViewFrame;
+			self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = CGRectZero;
 			self._ln_popupController_nocreate.popupBar.backgroundView.alpha = context.isCancelled ? 0.0 : 1.0;
 		}
 		
@@ -1889,6 +1893,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_layoutPopupBarOrderForTransition
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		[super _layoutPopupBarOrderForTransition];
+		return;
+	}
+	
 	if(!LNPopupEnvironmentHasGlass())
 	{
 		[super _layoutPopupBarOrderForTransition];
@@ -1902,6 +1913,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_layoutPopupBarOrderForUse
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		[super _layoutPopupBarOrderForUse];
+		return;
+	}
+	
 	if(!LNPopupEnvironmentHasGlass())
 	{
 		[super _layoutPopupBarOrderForUse];
@@ -1913,34 +1931,60 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	}];
 }
 
-- (nullable UIView *)bottomDockingViewForPopup_nocreate
+- (nullable UIView *)bottomDockingViewForPopup_internal
 {
 	return self.toolbar;
 }
 
-- (nullable UIView *)bottomDockingViewForPopupBar
+- (BOOL)_ln_isToolbarHiddenOrSwiftUIBuggyToolbar
 {
-	return self.toolbar;
+	if(self.isToolbarHidden)
+	{
+		return YES;
+	}
+	
+	if(@available(iOS 26.0, *))
+	{
+		if(self.topViewController == self.viewControllers.firstObject && self.topViewController.toolbarItems.count == 0)
+		{
+			return YES;
+		}
+	}
+	
+	return NO;
 }
 
 - (CGFloat)_ln_popupOffsetForPopupBar:(LNPopupBar *)popupBar
 {
-	return self.isToolbarHidden ? [super _ln_popupOffsetForPopupBar:popupBar] : LNPopupEnvironmentHasGlass() ? -8.0 : 0.0;
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		return [super _ln_popupOffsetForPopupBar:popupBar];
+	}
+	
+	return self._ln_isToolbarHiddenOrSwiftUIBuggyToolbar ? [super _ln_popupOffsetForPopupBar:popupBar] : LNPopupEnvironmentHasGlass() ? -8.0 : 0.0;
 }
 
-- (CGRect)defaultFrameForBottomDockingView
+- (CGRect)defaultFrameForBottomDockingView_internal
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		return super.defaultFrameForBottomDockingView_internal;
+	}
+	
 	if(LNPopupEnvironmentHasGlass())
 	{
-		static auto key = LNPopupHiddenString("_floatingBarContainerView.toolbarOverlayInset");
+		static auto floatingBarContainerViewKey = LNPopupHiddenString("floatingBarContainerView");
+		static auto toolbarOverlayInsetKey = LNPopupHiddenString("toolbarOverlayInset");
 		CGFloat inset;
-		if(self.isToolbarHidden)
+		if(self._ln_isToolbarHiddenOrSwiftUIBuggyToolbar)
 		{
 			inset = self.view.safeAreaInsets.bottom;
 		}
 		else
 		{
-			inset = [[self valueForKeyPath:key] doubleValue];
+			UIView* floatingBarContainerView = [self valueForKey:floatingBarContainerViewKey];
+			[floatingBarContainerView layoutIfNeeded];
+			inset = [[floatingBarContainerView valueForKey:toolbarOverlayInsetKey] doubleValue];
 		}
 		return CGRectMake(0, self.view.bounds.size.height - inset, self.view.bounds.size.width, inset);
 	}
@@ -1948,7 +1992,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	CGRect toolbarBarFrame = self.toolbar.frame;
 
 	CGFloat bottomSafeAreaHeight = 0.0;
-	if(unavailable(iOS 18.0, *))
+	if(ln_unavailable(iOS 18.0, *))
 	{
 		bottomSafeAreaHeight = self.view.safeAreaInsets.bottom;
 		if([NSStringFromClass(self.nonMemoryLeakingPresentationController.class) containsString:@"Preview"] == NO)
@@ -1956,7 +2000,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 			bottomSafeAreaHeight -= self.view.window.safeAreaInsets.bottom;
 		}
 	}
-	toolbarBarFrame.origin = CGPointMake(toolbarBarFrame.origin.x, self.view.bounds.size.height - (self.isToolbarHidden ? 0.0 : toolbarBarFrame.size.height) - bottomSafeAreaHeight);
+	toolbarBarFrame.origin = CGPointMake(toolbarBarFrame.origin.x, self.view.bounds.size.height - (self._ln_isToolbarHiddenOrSwiftUIBuggyToolbar ? 0.0 : toolbarBarFrame.size.height) - bottomSafeAreaHeight);
 	
 	if(@available(iOS 18.0, *))
 	{
@@ -1980,7 +2024,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (UIEdgeInsets)insetsForBottomDockingView
 {
-	if(LNPopupEnvironmentHasGlass())
+	if(self.bottomDockingViewForPopupBar != nil || LNPopupEnvironmentHasGlass())
 	{
 		return UIEdgeInsetsZero;
 	}
@@ -2055,13 +2099,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 
 - (void)_ln_popup_viewDidLayoutSubviews_nvc
 {
-	if(self._ln_popupController_nocreate.popupControllerInternalState != LNPopupPresentationStateBarHidden)
+	if(self.bottomDockingViewForPopupBar == nil && self._ln_popupController_nocreate.popupControllerInternalState != LNPopupPresentationStateBarHidden)
 	{
 		if(self._ignoringLayoutDuringTransition == NO)
 		{
 			BOOL isFloating = self._ln_popupController_nocreate.popupBar.resolvedIsFloating;
 			
-			if(self.isToolbarHidden == NO)
+			if(self._ln_isToolbarHiddenOrSwiftUIBuggyToolbar == NO)
 			{
 				self._ln_bottomBarExtension_nocreate.hidden = YES;
 				[self._ln_bottomBarExtension_nocreate removeFromSuperview];
@@ -2094,7 +2138,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 	void (*super_call)(struct objc_super*, SEL) = (void (*)(struct objc_super*, SEL))objc_msgSendSuper;
 	super_call(&superInfo, @selector(viewDidLayoutSubviews));
 	
-	if(self._ignoringLayoutDuringTransition == NO)
+	if(self.bottomDockingViewForPopupBar == nil && self._ignoringLayoutDuringTransition == NO)
 	{
 		CGFloat bottomSafeArea = self.view.superview.safeAreaInsets.bottom;
 		self._ln_bottomBarExtension_nocreate.frame = CGRectMake(0, self.view.bounds.size.height - bottomSafeArea, self.view.bounds.size.width, bottomSafeArea);
@@ -2162,6 +2206,13 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 //_setToolbarHidden:edge:duration:
 - (void)_sTH:(BOOL)hidden e:(UIRectEdge)edge d:(NSTimeInterval)duration;
 {
+	if(self.bottomDockingViewForPopupBar != nil)
+	{
+		//Custom bottom docking view, ignore.
+		[self _sTH:hidden e:edge d:duration];
+		return;
+	}
+	
 	BOOL isFloating = self._ln_popupController_nocreate.popupBar.resolvedIsFloating;
 	
 	[self._ln_popupController_nocreate.popupBar _cancelGestureRecognizers];
@@ -2258,7 +2309,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 			
 			if(isFloating)
 			{
-				self._ln_popupController_nocreate.popupBar.backgroundView.frame = targetBackgroundViewFrame;
+				self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = targetBackgroundViewFrame;
 			}
 			
 			CGRect frame;
@@ -2290,6 +2341,8 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 					self._ln_popupController_nocreate.popupBar.backgroundView.alpha = 1.0;
 				}
 			}
+			
+			[self._ln_popupController_nocreate.popupBar layoutIfNeeded];
 		};
 		
 		void (^completion)(BOOL finished) = ^ (BOOL finished) {
@@ -2316,7 +2369,7 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 			self._ln_popupController_nocreate.popupBar.bottomShadowView.hidden = YES;
 			self._ln_popupController_nocreate.popupBar.bottomShadowView.alpha = 1.0;
 			
-			self._ln_popupController_nocreate.popupBar.backgroundView.frame = backgroundViewFrame;
+			self._ln_popupController_nocreate.popupBar.backgroundViewFrameDuringAnimation = CGRectZero;
 			
 			[self _setIgnoringLayoutDuringTransition:NO];
 		};

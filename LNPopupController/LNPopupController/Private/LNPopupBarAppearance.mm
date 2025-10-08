@@ -11,6 +11,7 @@
 #import "_LNPopupBase64Utils.hh"
 #import "_LNPopupGlassUtils.h"
 #import "UIScreen+LNPopupSupportPrivate.h"
+#import "LNPopupBar+Private.h"
 
 static void* _LNPopupItemObservationContext = &_LNPopupItemObservationContext;
 
@@ -29,7 +30,7 @@ static NSArray* __notifiedProperties = nil;
 	{
 		static dispatch_once_t onceToken;
 		dispatch_once(&onceToken, ^{
-			__notifiedProperties = LNPopupGetPropertyNames(self, nil);
+			__notifiedProperties = LNPopupGetPropertyNames(self, nil, NO);
 			
 #ifndef LNPopupControllerEnforceStrictClean
 			Method m1 = LNSwizzleClassGetInstanceMethod(self, @selector(a:cC:));
@@ -101,7 +102,14 @@ static NSArray* __notifiedProperties = nil;
 		[self configureWithDefaultImageShadow];
 		[self configureWithDefaultHighlightColor];
 		[self configureWithDefaultMarqueeScroll];
-		[self configureWithDisabledMarqueeScroll];
+		if(LNPopupEnvironmentHasGlass())
+		{
+			[self configureWithDefaultMarqueeScroll];
+		}
+		else
+		{
+			[self configureWithDisabledMarqueeScroll];
+		}
 		
 		[self configureWithDefaultFloatingBackground];
 
@@ -187,7 +195,7 @@ static NSArray* __notifiedProperties = nil;
 	return rv;
 }
 
-- (UIVisualEffect *)floatingBackgroundEffectForTraitCollection:(UITraitCollection*)traitCollection
+- (UIVisualEffect*)floatingBackgroundEffectForPopupBar:(LNPopupBar*)popupBar containerController:(UIViewController*)container traitCollection:(UITraitCollection*)traitCollection
 {
 	if(_wantsDynamicFloatingBackgroundEffect == NO)
 	{
@@ -199,7 +207,19 @@ static NSArray* __notifiedProperties = nil;
 	{
 		if(LNPopupEnvironmentHasGlass())
 		{
-			UIGlassEffect* effect = [LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
+//			if(popupBar.resolvedIsCustom && traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark)
+//			{
+//				return _LNPopupBorrowedGlassEffect.buttonEffect;
+//			}
+//			
+//			if(popupBar.resolvedIsCustom == NO && traitCollection.popupBarEnvironment == LNPopupBarEnvironmentInline)
+//			{
+//				return _LNPopupBorrowedGlassEffect.buttonEffect;
+//			}
+			
+			UIGlassEffectStyle style = UIGlassEffectStyleRegular;
+			
+			UIGlassEffect* effect = [_LNPopupGlassEffect effectWithStyle:style];
 			effect.interactive = YES;
 			return effect;
 		}
@@ -210,7 +230,6 @@ static NSArray* __notifiedProperties = nil;
 	{
 		return [UIBlurEffect effectWithStyle:UIBlurEffectStyleProminent];
 	}
-	
 	
 	return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
 }
@@ -252,9 +271,7 @@ static NSArray* __notifiedProperties = nil;
 - (void)setFloatingBackgroundEffect:(UIBlurEffect *)floatingBackgroundEffect
 {
 	_wantsDynamicFloatingBackgroundEffect = NO;
-	[self willChangeValueForKey:@"floatingBackgroundEffect"];
 	_floatingBackgroundEffect = floatingBackgroundEffect;
-	[self didChangeValueForKey:@"floatingBackgroundEffect"];
 }
 
 - (void)configureWithDefaultHighlightColor
@@ -387,7 +404,7 @@ static NSArray* __notifiedProperties = nil;
 	{
 		if(LNPopupEnvironmentHasGlass())
 		{
-			effect = [LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
+			effect = [_LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
 		}
 		else
 		{
