@@ -1664,8 +1664,14 @@ static BOOL __LNPopupUseSystemMarqueeLabel(void)
 	}
 #endif
 	
-	[leftViewLast.superview layoutIfNeeded];
-	[rightViewFirst.superview layoutIfNeeded];
+	if(isRTL == YES)
+	{
+		[leftViewLast.superview layoutIfNeeded];
+	}
+	else
+	{
+		[rightViewFirst.superview layoutIfNeeded];
+	}
 	
 	CGFloat imageToTitlePadding = _resolvedIsFloating && (!LNPopupEnvironmentHasGlass() || _resolvedIsCompact) ? 8 : 16;
 	
@@ -1732,14 +1738,14 @@ static BOOL __LNPopupUseSystemMarqueeLabel(void)
 	}
 	
 	CGFloat fontSize = 15;
-	UIFontWeight fontWeight = UIFontWeightMedium;
-	UIFontTextStyle textStyle = UIFontTextStyleBody;
+	UIFontWeight fontWeight = UIFontWeightSemibold;
+	UIFontTextStyle textStyle = UIFontTextStyleHeadline;
 	
 	switch(_resolvedStyle)
 	{
 		case LNPopupBarStyleFloating:
 			fontSize = 15;
-			fontWeight = UIFontWeightMedium;
+			fontWeight = UIFontWeightSemibold;
 			textStyle = UIFontTextStyleHeadline;
 			break;
 		case LNPopupBarStyleProminent:
@@ -1748,6 +1754,10 @@ static BOOL __LNPopupUseSystemMarqueeLabel(void)
 			textStyle = UIFontTextStyleBody;
 			break;
 		case LNPopupBarStyleFloatingCompact:
+			fontSize = 13;
+			fontWeight = UIFontWeightSemibold;
+			textStyle = UIFontTextStyleHeadline;
+			break;
 		case LNPopupBarStyleCompact:
 			fontSize = 13.5;
 			fontWeight = UIFontWeightMedium;
@@ -1981,12 +1991,18 @@ static BOOL __LNPopupUseSystemMarqueeLabel(void)
 		}];
 	}
 	
+	CGRect frameBefore = _titlesView.frame;
+	
 	CGFloat size = [_titleLabel systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height + [_subtitleLabel systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height + (_titleLabel && _subtitleLabel ? 1 : 0) * _titlesView.spacing;
 	_titlesView.frame = CGRectMake(titleInsets.left, 0, _contentView.bounds.size.width - titleInsets.left - titleInsets.right, size);
 	CGPoint center = _titlesView.center;
 	center.y = _contentView.contentView.center.y;
 	_titlesView.center = center;
-	[_titlesView layoutIfNeeded];
+	
+	if(CGRectEqualToRect(frameBefore, _titlesView.frame) == NO)
+	{
+		[_titlesView layoutIfNeeded];
+	}
 	
 	[self _updateAccessibility];
 	
@@ -2099,7 +2115,7 @@ static CGSize LNMakeSizeWithAspectRatioInsideSize(CGSize aspectRatio, CGSize siz
 	
 	if(LNPopupEnvironmentHasGlass())
 	{
-		safeLeading = _resolvedIsCompact ? 16 : 20;
+		safeLeading = _resolvedIsCompact || self.traitCollection.popupBarEnvironment == LNPopupBarEnvironmentInline ? 16 : 20;
 	}
 	else
 	{
