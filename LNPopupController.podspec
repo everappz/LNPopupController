@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'LNPopupController'
-  s.version      = '4.2.1'
+  s.version      = '4.4.0'
   s.summary      = 'Popup bar like Apple Music/Podcasts.'
   s.description  = 'LNPopupController provides a popup bar and content presentation.'
   s.homepage     = 'https://github.com/LeoNatan/LNPopupController'
@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'ObjC' do |ss|
     ss.source_files = [
-      'LNPopupController/LNPopupController/**/*.{m,mm,c,cpp,h,hh}',
+      'LNPopupController/LNPopupController/**/*.{m,mm,c,cpp,h,hh,swift}',
       'LNPopupController/LNPopupController/*.h',
       'LNPopupController/LNPopupController.h'
     ]
