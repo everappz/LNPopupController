@@ -7,7 +7,11 @@
 //
 
 #import "LNPopupControllerExampleSupport.h"
+#if LNPOPUP
 #import "LNPopupControllerExample-Swift.h"
+#else
+#import "LNPopupControllerExampleNoPopup-Swift.h"
+#endif
 #import "SettingKeys.h"
 
 @interface DemoGalleryControllerTableView : UITableView @end
@@ -80,8 +84,10 @@
 		NSUInteger idx = 0;
 		for(UIViewController* vc in self.viewControllers)
 		{
+			BOOL isRegularTab = idx != 3 || [self isKindOfClass:LNCustomContainerController.class] || [vc isKindOfClass:UINavigationController.class] == NO || NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 26;
+			
 			NSString* title = vc.tabBarItem.title;
-			if(idx != 3 && UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad)
+			if(isRegularTab)
 			{
 				title = [NSString stringWithFormat:@"%@ %@", title, @(idx + 1)];
 			}
@@ -89,7 +95,7 @@
 			UITab* tab;
 			
 			UIImage* image;
-			if(idx != 3 || [self isKindOfClass:LNCustomContainerController.class] || [vc isKindOfClass:UINavigationController.class] == NO || NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 26)
+			if(isRegularTab)
 			{
 				image = [UIImage systemImageNamed:[NSString stringWithFormat:@"%@.square", @(idx + 1)]];
 				

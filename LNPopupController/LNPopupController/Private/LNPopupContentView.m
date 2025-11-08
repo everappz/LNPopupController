@@ -6,40 +6,47 @@
 //  Copyright © 2015-2025 Léo Natan. All rights reserved.
 //
 
-#import "LNPopupController.h"
+#import "LNPopupControllerImpl.h"
 #import "LNPopupContentView+Private.h"
 #import "LNPopupCloseButton+Private.h"
 #import <LNPopupController/UIViewController+LNPopupSupport.h>
-
-LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPopupCloseButtonStyle style)
-{
-	LNPopupCloseButtonStyle rv = style;
-	if(rv == LNPopupCloseButtonStyleDefault)
-	{
-		if([LNPopupBar isCatalystApp])
-		{
-			rv =  LNPopupCloseButtonStyleRound;
-		}
-		else
-		{
-			rv = LNPopupCloseButtonStyleGrabber;
-		}
-	}
-	return rv;
-}
+#import "UIView+LNPopupSupportPrivate.h"
+#import "_LNUITraitOverridesWrapper.h"
 
 @implementation LNPopupContentView
 {
-	NSInteger _userOverrideUserInterfaceStyle;
-	NSInteger _controllerOverrideUserInterfaceStyle;
-	
 	NSLayoutConstraint* _popupCloseButtonTopConstraint;
 
 	NSLayoutConstraint* _popupCloseButtonCenterConstraint;
 	NSLayoutConstraint* _popupCloseButtonLeadingConstraint;
+	NSLayoutConstraint* _popupCloseButtonTrailingConstraint;
 }
 
-- (nonnull instancetype)initWithFrame:(CGRect)frame
+- (id<UITraitOverrides>)traitOverrides
+{
+	return [[_LNUITraitOverridesWrapper alloc] initWithTraitOverrides:super.traitOverrides contentView:self];
+}
+
+- (void)setUserUserInterfaceStyleTraitModifier:(UIUserInterfaceStyle)userUserInterfaceStyleTraitModifier
+{
+	_userUserInterfaceStyleTraitModifier = userUserInterfaceStyleTraitModifier;
+	
+	[self _updateTraitOverrides];
+}
+
+- (void)setSystemUserInterfaceStyleTraitModifier:(UIUserInterfaceStyle)systemUserInterfaceStyleTraitModifier
+{
+	_systemUserInterfaceStyleTraitModifier = systemUserInterfaceStyleTraitModifier;
+	
+	[self _updateTraitOverrides];
+}
+
+- (void)_updateTraitOverrides API_AVAILABLE(ios(17.0))
+{
+	super.traitOverrides.userInterfaceStyle = self.userUserInterfaceStyleTraitModifier != UIUserInterfaceStyleUnspecified ? self.userUserInterfaceStyleTraitModifier : self.systemUserInterfaceStyleTraitModifier;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
 {
 	self = [super initWithFrame:frame];
 	
@@ -59,16 +66,16 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 		_backgroundEffect = nil;
 		
 		_popupCloseButton = [[LNPopupCloseButton alloc] initWithContainingContentView:self];
-		_popupCloseButton.popupContentView = self;
+		[self _setStyle:LNPopupCloseButtonStyleDefault positioning:LNPopupCloseButtonPositioningDefault];
 		
 		__weak __typeof(self) weakSelf = self;
 		if(@available(iOS 13.4, *))
 		{
 			_popupCloseButton.pointerInteractionEnabled = YES;
 			_popupCloseButton.pointerStyleProvider = ^ UIPointerStyle* (UIButton *button, UIPointerEffect *proposedEffect, UIPointerShape *proposedShape) {
-				LNPopupCloseButtonStyle resolvedStyle = _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(weakSelf.popupCloseButtonStyle);
+				LNPopupCloseButtonStyle resolvedStyle = weakSelf.effectivePopupCloseButtonStyle;
 				
-				if(resolvedStyle == LNPopupCloseButtonStyleRound)
+				if(resolvedStyle == LNPopupCloseButtonStyleRound || _LNPopupCloseButtonStyleIsGlass(resolvedStyle))
 				{
 					CGRect frame = CGRectInset(weakSelf.popupCloseButton.frame, 5, 5);
 					
@@ -118,42 +125,65 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 
 - (void)setPopupCloseButtonStyle:(LNPopupCloseButtonStyle)popupCloseButtonStyle
 {
+	[self _setStyle:popupCloseButtonStyle positioning:_popupCloseButtonPositioning];
+}
+
+- (void)setPopupCloseButtonPositioning:(LNPopupCloseButtonPositioning)popupCloseButtonPositioning
+{
+	[self _setStyle:_popupCloseButtonStyle positioning:popupCloseButtonPositioning];
+}
+
+- (void)_setStyle:(LNPopupCloseButtonStyle)popupCloseButtonStyle positioning:(LNPopupCloseButtonPositioning)popupCloseButtonPositioning
+{
 	_popupCloseButtonStyle = popupCloseButtonStyle;
+	_popupCloseButtonPositioning = popupCloseButtonPositioning;
 	
-	LNPopupCloseButtonStyle buttonStyle = _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(self.popupCloseButtonStyle);
-	
+	_LNPopupResolveCloseButtonStyleAndPositioning(_popupCloseButtonStyle, _popupCloseButtonPositioning, &_effectivePopupCloseButtonStyle, &_effectivePopupCloseButtonPositioning);
+
+	[self _configureButton];
+}
+
+- (void)_configureButton
+{
 	[UIView performWithoutAnimation:^{
-		[self.popupCloseButton _setStyle:buttonStyle];
+		[self.popupCloseButton _setStyle:_popupCloseButtonStyle];
+		[self.popupCloseButton _setPositioning:_popupCloseButtonPositioning];
 		
-		if([_currentPopupContentViewController positionPopupCloseButton:self.popupCloseButton] == YES)
+		if(self.effectivePopupCloseButtonStyle != LNPopupCloseButtonStyleNone)
 		{
-			_popupCloseButtonTopConstraint.active = NO;
-			_popupCloseButtonLeadingConstraint.active = NO;
-			_popupCloseButtonCenterConstraint.active = NO;
-			return;
-		}
-		else
-		{
-			if(self.popupCloseButton.superview != self.contentView)
+			if([_currentPopupContentViewController positionPopupCloseButton:self.popupCloseButton] == YES)
 			{
-				[self.contentView addSubview:self.popupCloseButton];
+				_popupCloseButtonTopConstraint.active = NO;
+				_popupCloseButtonLeadingConstraint.active = NO;
+				_popupCloseButtonTrailingConstraint.active = NO;
+				_popupCloseButtonCenterConstraint.active = NO;
+				return;
 			}
-		}
-		
-		if(buttonStyle != LNPopupCloseButtonStyleNone)
-		{
+			else
+			{
+				if(self.popupCloseButton.superview != self.contentView)
+				{
+					[self.contentView addSubview:self.popupCloseButton];
+				}
+			}
+			
 			self.popupCloseButton.translatesAutoresizingMaskIntoConstraints = NO;
 			
 			if(_popupCloseButtonTopConstraint == nil)
 			{
-				_popupCloseButtonTopConstraint = [self.popupCloseButton.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:buttonStyle == LNPopupCloseButtonStyleRound ? 12 : 8];
+				_popupCloseButtonTopConstraint = [self.popupCloseButton.topAnchor constraintEqualToAnchor:self.contentView.topAnchor];
 				
 				[NSLayoutConstraint activateConstraints:@[_popupCloseButtonTopConstraint]];
 			}
 			
 			if(_popupCloseButtonLeadingConstraint == nil)
 			{
-				_popupCloseButtonLeadingConstraint = [self.popupCloseButton.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:12];
+				_popupCloseButtonLeadingConstraint = [self.popupCloseButton.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor];
+			}
+			
+			if(_popupCloseButtonTrailingConstraint == nil)
+			{
+				_popupCloseButtonTrailingConstraint = [self.popupCloseButton.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor];
 			}
 			
 			if(_popupCloseButtonCenterConstraint == nil)
@@ -161,22 +191,11 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 				_popupCloseButtonCenterConstraint = [self.popupCloseButton.centerXAnchor constraintEqualToAnchor:self.contentView.safeAreaLayoutGuide.centerXAnchor];
 			}
 			
-			if(buttonStyle == LNPopupCloseButtonStyleRound)
-			{
-				_popupCloseButtonLeadingConstraint.active = YES;
-				_popupCloseButtonCenterConstraint.active = NO;
-			}
-			else
-			{
-				_popupCloseButtonLeadingConstraint.active = NO;
-				_popupCloseButtonCenterConstraint.active = YES;
-			}
-			
-			[self _repositionPopupCloseButtonAnimated:YES];
+			[self _repositionPopupCloseButtonAnimated:NO];
 		}
 		else
 		{
-			self.popupCloseButton.hidden = YES;
+			[self.popupCloseButton removeFromSuperview];
 		}
 	}];
 }
@@ -215,33 +234,59 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 		return;
 	}
 	
+	_popupCloseButtonTopConstraint.constant = _LNPopupCloseButtonStyleIsGlass(self.effectivePopupCloseButtonStyle) ? 20 : self.effectivePopupCloseButtonStyle == LNPopupCloseButtonStyleRound ? 12 : 8;
+	_popupCloseButtonLeadingConstraint.constant = _LNPopupCloseButtonStyleIsGlass(self.effectivePopupCloseButtonStyle) ? 20 : 12;
+	_popupCloseButtonTrailingConstraint.constant = _LNPopupCloseButtonStyleIsGlass(self.effectivePopupCloseButtonStyle) ? -20 : -12;
+	
+	switch(self.effectivePopupCloseButtonPositioning)
+	{
+		default:
+		case LNPopupCloseButtonPositioningLeading:
+			_popupCloseButtonLeadingConstraint.active = YES;
+			_popupCloseButtonCenterConstraint.active = NO;
+			_popupCloseButtonTrailingConstraint.active = NO;
+			break;
+		case LNPopupCloseButtonPositioningCenter:
+			_popupCloseButtonLeadingConstraint.active = NO;
+			_popupCloseButtonCenterConstraint.active = YES;
+			_popupCloseButtonTrailingConstraint.active = NO;
+			break;
+		case LNPopupCloseButtonPositioningTrailing:
+			_popupCloseButtonLeadingConstraint.active = NO;
+			_popupCloseButtonCenterConstraint.active = NO;
+			_popupCloseButtonTrailingConstraint.active = YES;
+			break;
+	}
+	
 	if(self.currentPopupContentViewController == nil)
 	{
 		return;
 	}
 	
-	CGRect layoutFrame = [self convertRect:_currentPopupContentViewController.view.layoutMarginsGuide.layoutFrame fromView:_currentPopupContentViewController.view];
+	UIEdgeInsets layoutMargins = LNPopupEnvironmentLayoutInsets(self.currentPopupContentViewController.view, false);
 	
-	CGFloat topConstant = self.popupCloseButton.style == LNPopupCloseButtonStyleRound ? 0 : 1.0;
-	topConstant += layoutFrame.origin.y;
-	topConstant = MAX(self.popupCloseButton.style == LNPopupCloseButtonStyleRound ? 12 : 0, topConstant);
+	CGFloat topConstant = layoutMargins.top;
+	
+	topConstant = MAX(self.effectivePopupCloseButtonStyle == LNPopupCloseButtonStyleRound ? 12 : 0, topConstant);
 	
 #if TARGET_OS_MACCATALYST
 	topConstant += 20;
 #endif
 	
-	CGFloat leadingConstant = layoutFrame.origin.x;
-	
-	if(topConstant != _popupCloseButtonTopConstraint.constant || leadingConstant != _popupCloseButtonLeadingConstraint.constant)
+	if(topConstant != _popupCloseButtonTopConstraint.constant || layoutMargins.left != _popupCloseButtonLeadingConstraint.constant || -layoutMargins.right != _popupCloseButtonTrailingConstraint.constant)
 	{
 		_popupCloseButtonTopConstraint.constant = topConstant;
-		_popupCloseButtonLeadingConstraint.constant = leadingConstant;
+		_popupCloseButtonLeadingConstraint.constant = layoutMargins.left;
+		_popupCloseButtonTrailingConstraint.constant = -layoutMargins.right;
 		
-		if(animated == NO)
+		if(self.window == nil)
 		{
-			[UIView performWithoutAnimation:^{
-				[self layoutIfNeeded];
-			}];
+			return;
+		}
+		
+		if(animated == NO || UIView.inheritedAnimationDuration > 0.0)
+		{
+			[self layoutIfNeeded];
 		}
 		else
 		{
@@ -252,32 +297,16 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 	}
 }
 
-#if DEBUG
+- (void)willMoveToSuperview:(UIView *)newSuperview
+{
+	[super willMoveToSuperview:newSuperview];
+}
 
 - (void)safeAreaInsetsDidChange
 {
 	[super safeAreaInsetsDidChange];
-}
-
-#endif
-
-- (UIUserInterfaceStyle)overrideUserInterfaceStyle
-{
-	return _userOverrideUserInterfaceStyle != UIUserInterfaceStyleUnspecified ? _userOverrideUserInterfaceStyle : _controllerOverrideUserInterfaceStyle;
-}
-
-- (void)setOverrideUserInterfaceStyle:(UIUserInterfaceStyle)overrideUserInterfaceStyle
-{
-	_userOverrideUserInterfaceStyle = overrideUserInterfaceStyle;
 	
-	[super setOverrideUserInterfaceStyle:self.overrideUserInterfaceStyle];
-}
-
-- (void)setControllerOverrideUserInterfaceStyle:(UIUserInterfaceStyle)overrideUserInterfaceStyle
-{
-	_controllerOverrideUserInterfaceStyle = overrideUserInterfaceStyle;
-	
-	[super setOverrideUserInterfaceStyle:self.overrideUserInterfaceStyle];
+	[self _repositionPopupCloseButtonAnimated:NO];
 }
 
 - (void)_applyBackgroundEffectWithContentViewController:(UIViewController*)vc activeAppearance:(LNPopupBarAppearance*)appearance
@@ -301,7 +330,6 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 			effectToUse = [appearance floatingBackgroundEffectForPopupBar:nil containerController:nil traitCollection:vc.traitCollection];
 		}
 		
-#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 		if(@available(iOS 26.0, *))
 		if(effectToUse.ln_isGlass)
 		{
@@ -310,7 +338,6 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 			wrapper.disableInteractive = _backgroundEffect == nil;
 			effectToUse = wrapper;
 		}
-#endif
 		
 		_effectView.effect = effectToUse;
 	}

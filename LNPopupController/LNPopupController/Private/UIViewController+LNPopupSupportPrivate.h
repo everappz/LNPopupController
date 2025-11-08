@@ -32,8 +32,15 @@ extern BOOL __ln_popup_suppressViewControllerLifecycle;
 UIEdgeInsets _LNPopupSafeAreaInsets(id self);
 void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller, BOOL layout, UIEdgeInsets popupEdgeInsets);
 
+@interface NSObject (SwiftUISupport)
+
+- (BOOL)_ln_isObjectFromSwiftUI;
+
+@end
+
 @interface UIViewController (LNPopupSupport)
 
+@property (nonatomic, retain, readwrite) LNPopupItem* popupItem;
 @property (nullable, nonatomic, weak, readwrite) UIViewController* popupPresentationContainerViewController;
 @property (nullable, nonatomic, strong, readwrite) UIViewController* popupContentViewController;
 
@@ -92,8 +99,6 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 - (void)_userFacing_viewWillDisappear:(BOOL)animated;
 - (void)_userFacing_viewDidDisappear:(BOOL)animated;
 
-- (BOOL)_ln_isObjectFromSwiftUI;
-
 - (BOOL)_ln_shouldPopupContentAnyFadeForTransition;
 - (BOOL)_ln_shouldPopupContentViewFadeForTransition;
 
@@ -111,6 +116,12 @@ void _LNPopupSupportSetPopupInsetsForViewController(UIViewController* controller
 @interface UITabBarController (LNPopupSupportPrivate)
 
 - (BOOL)_ln_isFloatingTabBar;
+
+@end
+
+@interface UINavigationController (LNPopupSupportPrivate)
+
+- (BOOL)_ln_isToolbarHiddenOrSwiftUIBuggyToolbar;
 
 @end
 

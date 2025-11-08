@@ -76,8 +76,6 @@ void LNApplyTitleWithSettings(UIViewController* self)
 	self.view = [DemoPopupContentView new];
 	LNApplyTitleWithSettings(self);
 	[self _updateBackground];
-	
-	[self updateUserInterfaceStyleOverrideFromCollection:self.traitCollection];
 }
 
 - (void)viewDidLoad
@@ -89,25 +87,9 @@ void LNApplyTitleWithSettings(UIViewController* self)
 	
 	if(@available(iOS 17.0, *))
 	{
-		[self registerForTraitChanges:@[UITraitUserInterfaceStyle.class] withHandler:^(__kindof id<UITraitEnvironment>  _Nonnull traitEnvironment, UITraitCollection * _Nonnull previousCollection) {
-			[traitEnvironment updateUserInterfaceStyleOverrideFromCollection:traitEnvironment.traitCollection];
-		}];
-		
 		[self registerForTraitChanges:@[LNPopupBarEnvironmentTrait.class, UITraitHorizontalSizeClass.class] withHandler:^(__kindof id<UITraitEnvironment>  _Nonnull traitEnvironment, UITraitCollection * _Nonnull previousCollection) {
-			[traitEnvironment _setPopupItemButtonsWithTraitCollection:self.traitCollection animated:YES];
+			[traitEnvironment _setPopupItemButtonsWithTraitCollection:self.traitCollection animated:NO];
 		}];
-	}
-}
-
-- (void)updateUserInterfaceStyleOverrideFromCollection:(UITraitCollection *)collection
-{
-	if([NSUserDefaults.settingDefaults boolForKey:PopupSettingInvertDemoSceneColors])
-	{
-		self.view.overrideUserInterfaceStyle = collection.userInterfaceStyle == UIUserInterfaceStyleLight ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
-	}
-	else
-	{
-		self.view.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
 	}
 }
 
@@ -128,14 +110,13 @@ void LNApplyTitleWithSettings(UIViewController* self)
 	}
 }
 
-- (void)button:(UIBarButtonItem*)button
-{
-	NSLog(@"✓");
-}
-
 - (void)_setPopupItemButtonsWithTraitCollection:(UITraitCollection*)collection animated:(BOOL)animated
 {
-	LNPopupItemSetStandardMusicControls(self.popupItem, animated, collection, self, @selector(button:));
+	UIAction* action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+		NSLog(@"✓");
+	}];
+	
+	LNPopupItemSetStandardMusicControls(self.popupItem, false, animated, collection, action, action, action);
 }
 
 - (BOOL)prefersStatusBarHidden
@@ -485,26 +466,13 @@ void LNApplyTitleWithSettings(UIViewController* self)
 
 - (BOOL)prefersHomeIndicatorAutoHidden
 {
-	return YES;
+//	return YES;
+	return NO;
 }
 
 @end
 
 @implementation DemoPopupContentViewController (Deprecated)
-
-- (void)willTransitionToTraitCollection:(UITraitCollection *)newCollection withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
-{
-	[super willTransitionToTraitCollection:newCollection withTransitionCoordinator:coordinator];
-	
-	if(@available(iOS 17.0, *))
-	{
-		return;
-	}
-	
-	[coordinator animateAlongsideTransitionInView:self.popupPresentationContainerViewController.view animation:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-		[self updateUserInterfaceStyleOverrideFromCollection:newCollection];
-	} completion:nil];
-}
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
 {

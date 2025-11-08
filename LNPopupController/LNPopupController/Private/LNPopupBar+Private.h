@@ -22,6 +22,14 @@
 
 CF_EXTERN_C_BEGIN
 
+#ifdef DEBUG
+extern BOOL _LNEnableBarLayoutDebug(void);
+#endif
+
+#if __has_include(<LNSystemMarqueeLabel.h>)
+extern BOOL __LNPopupUseSystemMarqueeLabel(void);
+#endif
+
 extern const CGFloat LNPopupBarHeightCompact;
 extern const CGFloat LNPopupBarHeightProminent;
 extern const CGFloat LNPopupBarHeightFloating;
@@ -39,6 +47,10 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 - (void)_popupBar:(LNPopupBar*)bar updateCustomBarController:(LNPopupCustomBarViewController*)customController cleanup:(BOOL)cleanup;
 - (void)_removeInteractionGestureForPopupBar:(LNPopupBar*)bar;
 
+- (void)_popupBar:(LNPopupBar*)bar setUserPopupItem:(LNPopupItem*)newItem;
+- (void)_popupBar:(LNPopupBar*)bar setPagedPopupItem:(LNPopupItem*)newItem;
+- (void)_generatePagingFeedbackForPopupBar:(LNPopupBar*)bar;
+
 @end
 
 @protocol _LNPopupBarSupport <NSObject>
@@ -53,6 +65,8 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, assign, getter=isShiny) BOOL shiny;
 
 @end
+
+@class _LNPopupToolbar;
 
 @interface LNPopupBar () <UIPointerInteractionDelegate, _LNPopupBarAppearanceDelegate>
 
@@ -74,10 +88,12 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 
 - (void)_setNeedsRecalcActiveAppearanceChain;
 
+@property (nonatomic, strong) _LNPopupToolbar* toolbar;
+
 @property (nonatomic, strong) UIImageView* shadowView;
 @property (nonatomic, strong) UIImageView* bottomShadowView;
 
-@property (nonatomic, weak, readwrite) LNPopupItem* popupItem;
+- (void)_setPopupItem:(LNPopupItem*)popupItem;
 
 @property (nonatomic, weak) __kindof UIViewController* barContainingController;
 @property (nonatomic, weak) id<_LNPopupBarDelegate> _barDelegate;
@@ -130,6 +146,7 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, strong) UIFont* swiftuiInheritedFont;
 
 @property (nonatomic, strong) UIView* swiftuiTitleContentView;
+@property (nonatomic, strong) UIViewController* swiftuiTitleContentViewController;
 
 @property (nonatomic, strong) UIViewController* swiftuiImageController;
 @property (nonatomic, strong) UIViewController* swiftuiHiddenLeadingController;
@@ -172,20 +189,12 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 
 @end
 
-@interface _LNPopupBarTitlesView : UIStackView @end
-
 @interface _LNPopupToolbar : UIToolbar
 
+@property (nonatomic) CGFloat itemSpacing;
 @property (nonatomic, weak) id<_LNPopupToolbarLayoutDelegate> _layoutDelegate;
 
-@end
-
-@interface _LNPopupTitleLabelWrapper: UIView
-
-+ (instancetype)wrapperForLabel:(UILabel*)wrapped;
-
-@property (nonatomic, strong) UILabel* wrapped;
-@property (nonatomic, strong) NSLayoutConstraint* wrappedWidthConstraint;
+- (void)forceLayoutOnButtons;
 
 @end
 

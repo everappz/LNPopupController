@@ -93,7 +93,7 @@ static NSArray* __notifiedProperties = nil;
 
 - (instancetype)initWithIdiom:(UIUserInterfaceIdiom)idiom
 {
-	self = [super initWithIdiom:UIUserInterfaceIdiomUnspecified];
+	self = [super initWithIdiom:idiom];
 	
 	if(self)
 	{
@@ -170,6 +170,8 @@ static NSArray* __notifiedProperties = nil;
 			[self setValue:[other valueForKey:key] forKey:key];
 		}
 		
+		_wantsDynamicFloatingBackgroundEffect = other->_wantsDynamicFloatingBackgroundEffect;
+		
 		[self _commonInit];
 	}
 	
@@ -202,7 +204,6 @@ static NSArray* __notifiedProperties = nil;
 		return _floatingBackgroundEffect;
 	}
 	
-#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 	if(@available(iOS 26, *))
 	{
 		if(LNPopupEnvironmentHasGlass())
@@ -224,7 +225,6 @@ static NSArray* __notifiedProperties = nil;
 			return effect;
 		}
 	}
-#endif
 	
 	if(traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark)
 	{
@@ -234,7 +234,6 @@ static NSArray* __notifiedProperties = nil;
 	return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
 }
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 - (UICornerConfiguration*)floatingBackgroundCornerConfigurationForCustomBar:(BOOL)isCustomBar barHeight:(CGFloat)barHeight screen:(UIScreen*)screen wantsFullWidth:(BOOL)wantsFullWidth margins:(UIEdgeInsets)margins API_AVAILABLE(ios(26.0))
 {
 	if(!LNPopupEnvironmentHasGlass())
@@ -266,7 +265,6 @@ static NSArray* __notifiedProperties = nil;
 	
 	return [UICornerConfiguration capsuleConfiguration];
 }
-#endif
 
 - (void)setFloatingBackgroundEffect:(UIBlurEffect *)floatingBackgroundEffect
 {
@@ -399,12 +397,13 @@ static NSArray* __notifiedProperties = nil;
 	self.floatingBackgroundImage = nil;
 	
 	UIVisualEffect* effect;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 	if(@available(iOS 26.0, *))
 	{
 		if(LNPopupEnvironmentHasGlass())
 		{
-			effect = [_LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
+			_LNPopupGlassEffect* glassEffect = [_LNPopupGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
+			glassEffect.interactive = YES;
+			effect = glassEffect;
 		}
 		else
 		{
@@ -413,11 +412,8 @@ static NSArray* __notifiedProperties = nil;
 	}
 	else
 	{
-#endif
 		effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_18_5
 	}
-#endif
 	
 	self.floatingBackgroundEffect = effect;
 	_wantsDynamicFloatingBackgroundEffect = YES;
@@ -455,6 +451,16 @@ static NSArray* __notifiedProperties = nil;
 	self.floatingBarBackgroundShadow = self._defaultFloatingBarBackgroundShadow;
 	
 	[self _notify];
+}
+
+- (UIBarButtonItemAppearance *)doneButtonAppearance
+{
+	return self.prominentButtonAppearance;
+}
+
+- (void)setDoneButtonAppearance:(UIBarButtonItemAppearance *)doneButtonAppearance
+{
+	self.prominentButtonAppearance = doneButtonAppearance;
 }
 
 @end

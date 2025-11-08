@@ -11,7 +11,10 @@
 @class LNPopupBar;
 @class LNPopupController;
 
+CF_EXTERN_C_BEGIN
 NS_ASSUME_NONNULL_BEGIN
+
+extern UIEdgeInsets LNPopupEnvironmentLayoutInsets(UIView* containerView, BOOL limitToSafeAreas);
 
 typedef void (^LNInWindowBlock)(dispatch_block_t);
 
@@ -80,8 +83,11 @@ UIEdgeInsets _LNEdgeInsetsFromDirectionalEdgeInsets(UIView* forView, NSDirection
 
 @interface UIView ()
 
-+ (void)_ln_animatedUsingSwiftUIWithDuration:(NSTimeInterval)duration animations:(void(^)(void))animations completion:(void(^ __nullable)(void))completion;
++ (void)_ln_fixUIHostingViewHitTest;
++ (void)_ln_animateUsingSwiftUIWithDuration:(NSTimeInterval)duration animations:(void(^)(void))animations completion:(void(^ __nullable)(void))completion;
++ (void)_ln_animateInteractiveUsingSwiftUIWithDuration:(NSTimeInterval)duration animations:(void(^)(void))animations completion:(void(^ __nullable)(void))completion;
 
 @end
 
 NS_ASSUME_NONNULL_END
+CF_EXTERN_C_END

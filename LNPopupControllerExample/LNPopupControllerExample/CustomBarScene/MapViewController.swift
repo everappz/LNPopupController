@@ -95,7 +95,7 @@ class MapViewController: UIViewController, UISearchBarDelegate {
 	
 	func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
 #if LNPOPUP
-		navigationController!.openPopup(animated: true, completion: nil)
+		navigationController!.openPopup()
 		
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 			self.popupContentVC.searchBar.becomeFirstResponder()
@@ -135,10 +135,11 @@ class MapViewController: UIViewController, UISearchBarDelegate {
 		
 		navigationController!.popupBar.standardAppearance.isFloatingBarShineEnabled = true
 		
-		navigationController!.popupContentView.popupCloseButtonStyle = .none
 		if #available(iOS 26, *) {
+			navigationController!.popupContentView.popupCloseButtonStyle = .glass
 			navigationController!.popupContentView.backgroundEffect = UIGlassEffect(style: .regular)
 		} else {
+			navigationController!.popupContentView.popupCloseButtonStyle = .none
 			navigationController!.popupContentView.backgroundEffect = UIBlurEffect(style: .systemMaterial)
 		}
 		navigationController!.popupInteractionStyle = .customizedSnap(percent: 0.15)
@@ -146,7 +147,7 @@ class MapViewController: UIViewController, UISearchBarDelegate {
 		popupContentVC = (storyboard!.instantiateViewController(withIdentifier: "PopupContentController") as! LocationsController)
 		popupContentVC.tableView.backgroundColor = .clear
 		
-		navigationController!.presentPopupBar(with: self.popupContentVC, animated: animated, completion: nil)
+		navigationController!.presentPopupBar(with: self.popupContentVC, animated: animated)
 		
 		resize.target = navigationController!.popupBar.customBarViewController!
 		

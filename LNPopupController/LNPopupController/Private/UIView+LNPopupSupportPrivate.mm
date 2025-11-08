@@ -8,13 +8,60 @@
 
 #import "UIView+LNPopupSupportPrivate.h"
 #import "UIViewController+LNPopupSupportPrivate.h"
-#import "LNPopupController.h"
+#import "LNPopupControllerImpl.h"
 #import "_LNPopupSwizzlingUtils.h"
 #import "_LNPopupBase64Utils.hh"
 #import "LNPopupBar+Private.h"
 #import "_LNPopupUIBarAppearanceProxy.h"
 #import "_LNWeakRef.h"
 #import <objc/runtime.h>
+
+UIEdgeInsets LNPopupEnvironmentLayoutInsets(UIView* containerView, BOOL limitToSafeAreas)
+{
+	if(@available(iOS 26.0, *))
+	if(LNPopupEnvironmentHasGlass() && !limitToSafeAreas)
+	{
+		//TODO: Find out where to get these constants from the system.
+		if(UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone)
+		{
+			if(containerView.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact)
+			{
+				return UIEdgeInsetsMake(containerView.safeAreaInsets.top, 20, 20, 20);
+			}
+			else
+			{
+				return UIEdgeInsetsMake(20, 38, 20, 38);
+			}
+		}
+		else if(UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad)
+		{
+			UIEdgeInsets safeArea = [containerView edgeInsetsForLayoutRegion:[UIViewLayoutRegion safeAreaLayoutRegionWithCornerAdaptation:UIViewLayoutRegionAdaptivityAxisHorizontal]];
+			
+			safeArea.left = MAX(safeArea.left, 10);
+			if(safeArea.left > 20)
+			{
+				safeArea.left += 10;
+			}
+			
+			safeArea.right = MAX(safeArea.right, 10);
+			if(safeArea.right > 20)
+			{
+				safeArea.right += 10;
+			}
+			
+			if(containerView.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact)
+			{
+				return UIEdgeInsetsMake(safeArea.top, safeArea.left, 10, safeArea.right);
+			}
+			else
+			{
+				return UIEdgeInsetsMake(safeArea.top, safeArea.left, 10, safeArea.right);
+			}
+		}
+	}
+
+	return containerView.layoutMargins;
+}
 
 @implementation _LNPopupBarBackgroundGroupNameOverride
 
@@ -92,7 +139,16 @@ static const void* LNPopupBarBackgroundViewForceAnimatedKey = &LNPopupBarBackgro
 		{
 			SEL sel = NSSelectorFromString(LNPopupHiddenString("setSafeAreaInsets:"));
 			Method m = __LNSwizzleClassGetInstanceMethod(UIView.class, sel);
+			void (*orig)(id, SEL, UIEdgeInsets) = reinterpret_cast<decltype(orig)>(method_getImplementation(m));
 			class_addMethod(LNPopupBar.class, sel, imp_implementationWithBlock(^(id _self, UIEdgeInsets insets) {
+				orig(_self, sel, UIEdgeInsetsMake(0, insets.left, 0, insets.right));
+			}), method_getTypeEncoding(m));
+		}
+		
+		{
+			SEL sel = NSSelectorFromString(LNPopupHiddenString("setSafeAreaInsets:"));
+			Method m = __LNSwizzleClassGetInstanceMethod(UIView.class, sel);
+			class_addMethod(_LNPopupToolbar.class, sel, imp_implementationWithBlock(^(id _self, UIEdgeInsets insets) {
 			}), method_getTypeEncoding(m));
 		}
 		

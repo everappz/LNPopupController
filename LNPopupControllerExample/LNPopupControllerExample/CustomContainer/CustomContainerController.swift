@@ -3,10 +3,13 @@
 //  LNPopupControllerExample
 //
 //  Created by Léo Natan on 3/10/25.
-//  Copyright © 2025 Léo Natan. All rights reserved.
+//  Copyright © 2015-2025 Léo Natan. All rights reserved.
 //
 
 import UIKit
+#if LNPOPUP
+import LNPopupController
+#endif
 
 let buttonSize: CGFloat = 44.0
 let buttonSpacing: CGFloat = buttonSize / 3.0
@@ -36,7 +39,6 @@ class CustomTabBar: UIView {
 	override init(frame: CGRect) {
 		super.init(frame: frame)
 		
-#if compiler(>=6.2)
 		if #available(iOS 26, *) {
 			effectView.cornerConfiguration = .capsule()
 			stackView.cornerConfiguration = .capsule()
@@ -45,15 +47,10 @@ class CustomTabBar: UIView {
 			layer.cornerRadius = 8
 			layer.cornerCurve = .continuous
 		}
-#else
-		clipsToBounds = true
-		layer.cornerRadius = 8
-		layer.cornerCurve = .continuous
-#endif
 		
 		effectView.translatesAutoresizingMaskIntoConstraints = false
 		addSubview(effectView)
-#if compiler(>=6.2)
+
 		if #available(iOS 26, *) {
 			let glass = UIGlassEffect(style: .regular)
 			glass.isInteractive = true
@@ -61,9 +58,6 @@ class CustomTabBar: UIView {
 		} else {
 			effectView.effect = UIBlurEffect(style: .systemChromeMaterial)
 		}
-#else
-		effectView.effect = UIBlurEffect(style: .systemChromeMaterial)
-#endif
 		
 		stackView.translatesAutoresizingMaskIntoConstraints = false
 		effectView.contentView.addSubview(stackView)
@@ -198,6 +192,9 @@ class CustomContainerController: DemoTabBarController {
 	}
 }
 
+#if LNPOPUP
+// MARK: LNPopupController custom container support
+
 @available(iOS 18.0, *)
 extension CustomContainerController {
 	override var bottomDockingViewForPopupBar: UIView? {
@@ -220,6 +217,7 @@ extension CustomContainerController {
 		true
 	}
 }
+#endif
 
 @available(iOS 18.0, *)
 extension CustomContainerController: CustomTabBar.Delegate {

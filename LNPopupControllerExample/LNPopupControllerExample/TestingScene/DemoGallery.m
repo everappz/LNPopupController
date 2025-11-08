@@ -7,6 +7,7 @@
 //
 
 #import "DemoGallery.h"
+#import "SettingKeys.h"
 
 #if LNPOPUP
 @import LNPopupController;
@@ -27,6 +28,8 @@
 
 -(void)setEnabled:(BOOL)enabled
 {
+	_enabled = enabled;
+	
 	if(enabled)
 	{
 		self.textLabel.textColor = UIColor.labelColor;
@@ -97,7 +100,10 @@
 	self.navigationController.popupBar.standardAppearance.marqueeScrollEnabled = YES;
 	self.navigationController.popupBar.standardAppearance.floatingBarShineEnabled = YES;
 
-	self.navigationController.view.tintColor = self.navigationController.navigationBar.tintColor;
+	if(!LNPopupSettingsHasOS26Glass())
+	{
+		self.navigationController.view.tintColor = self.navigationController.navigationBar.tintColor;
+	}
 	[self.navigationController presentPopupBarWithContentViewController:_demoVC animated:NO completion:nil];
 	
 	[self.navigationController.popupBar addInteraction:[LNPopupDemoContextMenuInteraction new]];
@@ -116,6 +122,17 @@
 	return YES;
 }
 
+- (BOOL)tableView:(UITableView *)tableView shouldHighlightRowAtIndexPath:(NSIndexPath *)indexPath
+{
+	EnableableGalleryCell* cell = [tableView cellForRowAtIndexPath:indexPath];
+	if([cell isKindOfClass:EnableableGalleryCell.class] == NO)
+	{
+		return YES;
+	}
+	
+	return cell.isEnabled;
+}
+
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
 	if(segue.destinationViewController.modalPresentationStyle != UIModalPresentationFullScreen)
@@ -126,9 +143,12 @@
 	if([segue.identifier isEqualToString:@"Settings"] && UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad)
 	{
 		segue.destinationViewController.modalPresentationStyle = UIModalPresentationPopover;
-		if (@available(iOS 16.0, *)) {
+		if(@available(iOS 16.0, *))
+		{
 			segue.destinationViewController.popoverPresentationController.sourceItem = sender;
-		} else {
+		}
+		else
+		{
 			segue.destinationViewController.popoverPresentationController.barButtonItem = sender;
 		}
 	}

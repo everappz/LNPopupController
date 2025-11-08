@@ -7,19 +7,26 @@
 //
 
 import UIKit
+#if LNPOPUP
+import LNPopupController
+#endif
 
 class LocationsController: UITableViewController, UISearchBarDelegate {
 	@IBOutlet weak var searchBar: UISearchBar!
+	@IBOutlet weak var trailingConstraint: NSLayoutConstraint!
+	@IBOutlet weak var closeButtonContainer: UIView?
 		
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		
-#if compiler(>=6.2)
 		if #available(iOS 26, *) {
 			tableView.topEdgeEffect.isHidden = true
 			tableView.bottomEdgeEffect.isHidden = true
 		}
-#endif
+		
+		if LNPopupSettingsHasOS26Glass() {
+			trailingConstraint.constant = 74
+		}
 		
 		searchBar.delegate = self
 	}
@@ -41,7 +48,7 @@ class LocationsController: UITableViewController, UISearchBarDelegate {
 		searchBar.resignFirstResponder()
 #if LNPOPUP
 		popupItem.title = tableView.cellForRow(at: indexPath)?.textLabel?.text
-		popupPresentationContainer?.closePopup(animated: true, completion: nil)
+		popupPresentationContainer?.closePopup()
 #endif
 	}
 	
@@ -50,4 +57,11 @@ class LocationsController: UITableViewController, UISearchBarDelegate {
 		popupItem.title = searchText
 #endif
 	}
+	
+#if LNPOPUP
+	override func positionPopupCloseButton(_ popupCloseButton: LNPopupCloseButton) -> Bool {
+		closeButtonContainer?.addSubview(popupCloseButton)
+		return closeButtonContainer != nil
+	}
+#endif
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24408" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="cyK-Q5-zYP">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24410" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="cyK-Q5-zYP">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24402"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24403"/>
         <capability name="Image references" minToolsVersion="12.0"/>
         <capability name="Map view configurations" minToolsVersion="14.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -198,7 +198,7 @@
                             </tableViewSection>
                             <tableViewSection headerTitle="Demo App" footerTitle="Presents a rudimentary recreation of a music app." id="Gta-F3-Ame">
                                 <cells>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="music" textLabel="KHO-fT-c7X" style="IBUITableViewCellStyleDefault" id="Eee-L9-s2S">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="music" textLabel="KHO-fT-c7X" style="IBUITableViewCellStyleDefault" id="Eee-L9-s2S" customClass="OS18GalleryCell">
                                         <rect key="frame" x="20" y="538.66666221618652" width="353" height="51"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="Eee-L9-s2S" id="oWC-62-YfI">
@@ -282,8 +282,8 @@
                                             <rect key="frame" x="0.0" y="0.0" width="353" height="51"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <label opaque="NO" multipleTouchEnabled="YES" contentMode="left" text="Custom Container" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" id="Wwc-Pm-Vhy">
-                                                    <rect key="frame" x="16" y="0.0" width="321" height="51"/>
+                                                <label opaque="NO" multipleTouchEnabled="YES" contentMode="left" ambiguous="YES" text="Custom Container" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" id="Wwc-Pm-Vhy">
+                                                    <rect key="frame" x="8" y="0.0" width="337" height="51"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
                                                     <nil key="textColor"/>
@@ -304,7 +304,7 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" title="LNPopupController" largeTitleDisplayMode="always" id="JYD-6c-4Kf">
-                        <barButtonItem key="rightBarButtonItem" title="Settings" image="gears" style="plain" id="PjS-ok-m0Q">
+                        <barButtonItem key="rightBarButtonItem" title="Settings" image="gears" id="PjS-ok-m0Q">
                             <connections>
                                 <segue destination="Rxt-Jt-GTT" kind="presentation" identifier="Settings" modalPresentationStyle="formSheet" id="hNg-w3-Zdw"/>
                             </connections>
@@ -503,7 +503,7 @@
                 <viewControllerPlaceholder storyboardName="Music" id="Edz-3n-arZ" sceneMemberID="viewController"/>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="LzQ-ua-Rsf" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-541" y="-918"/>
+            <point key="canvasLocation" x="-583" y="-919"/>
         </scene>
         <!--FirstViewController-->
         <scene sceneID="43s-6c-3hg">
@@ -514,7 +514,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" verticalCompressionResistancePriority="1000" text="Bottom" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="N4q-gh-14d">
-                                <rect key="frame" x="167.33333333333334" y="714.66666666666663" width="58.666666666666657" height="20.333333333333371"/>
+                                <rect key="frame" x="167.33333333333334" y="755.66666666666663" width="58.666666666666657" height="20.333333333333371"/>
                                 <fontDescription key="fontDescription" style="UICTFontTextStyleHeadline"/>
                                 <nil key="highlightedColor"/>
                             </label>
@@ -578,21 +578,20 @@
                     </view>
                     <tabBarItem key="tabBarItem" title="Tab" image="1.square" catalog="system" id="wDA-8g-o9a"/>
                     <toolbarItems>
-                        <barButtonItem title="Present Bar" id="L0d-F2-GTi">
+                        <barButtonItem image="dock.arrow.up.rectangle" catalog="system" id="L0d-F2-GTi">
                             <connections>
                                 <action selector="_presentBar:" destination="l54-z5-xcG" id="xd5-fh-z8p"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem style="plain" systemItem="flexibleSpace" id="wfv-5d-KZ8"/>
-                        <barButtonItem title="Appearance" id="Mqv-hY-tWM">
+                        <barButtonItem image="dock.arrow.down.rectangle" catalog="system" id="via-gg-BV5">
                             <connections>
-                                <action selector="_changeBarStyle:" destination="l54-z5-xcG" id="Rf3-YV-ndy"/>
+                                <action selector="_dismissBar:" destination="l54-z5-xcG" id="Aq6-af-BTv"/>
                             </connections>
                         </barButtonItem>
                         <barButtonItem style="plain" systemItem="flexibleSpace" id="Hqh-tz-zeD"/>
-                        <barButtonItem title="Dismiss Bar" id="via-gg-BV5">
+                        <barButtonItem title="Appearance" id="Mqv-hY-tWM">
                             <connections>
-                                <action selector="_dismissBar:" destination="l54-z5-xcG" id="Aq6-af-BTv"/>
+                                <action selector="_changeBarStyle:" destination="l54-z5-xcG" id="Rf3-YV-ndy"/>
                             </connections>
                         </barButtonItem>
                     </toolbarItems>
@@ -602,14 +601,14 @@
                                 <action selector="_hideBottomBar:" destination="l54-z5-xcG" id="HIC-Da-xta"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem key="rightBarButtonItem" title="Gallery" image="checkmark" catalog="system" style="done" id="J60-GM-dOF">
+                        <barButtonItem key="rightBarButtonItem" title="Gallery" image="xmark" catalog="system" style="done" id="J60-GM-dOF">
                             <connections>
                                 <segue destination="Kpt-cx-19r" kind="unwind" identifier="UnwindSegue" unwindAction="unwindToGallery:" id="dI4-2y-ODx"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
                     <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
-                    <simulatedTabBarMetrics key="simulatedBottomBarMetrics"/>
+                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
                     <connections>
                         <outlet property="_barStyleButton" destination="Mqv-hY-tWM" id="FZH-Ef-T8y"/>
                         <outlet property="_galleryBarButton" destination="J60-GM-dOF" id="gU3-W1-7u0"/>
@@ -630,7 +629,7 @@
                 <viewControllerPlaceholder storyboardName="CustomContainer" id="dSO-ot-Xul" sceneMemberID="viewController"/>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="cqu-zw-pw4" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-1950" y="-2292"/>
+            <point key="canvasLocation" x="-1042" y="-2245"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="fHL-ZM-8LF">
@@ -773,7 +772,7 @@
         <segue reference="08s-5F-WiR"/>
         <segue reference="7V8-5m-eAW"/>
         <segue reference="SIC-fE-4sh"/>
-        <segue reference="Jqg-bQ-l0b"/>
+        <segue reference="7qJ-pK-ibQ"/>
         <segue reference="1U6-NV-9t4"/>
         <segue reference="cRg-Ru-N9x"/>
     </inferredMetricsTieBreakers>
@@ -781,11 +780,11 @@
     <resources>
         <image name="1.square" catalog="system" width="128" height="114"/>
         <image name="arrowtriangle.forward.fill" catalog="system" width="128" height="113"/>
-        <image name="checkmark" catalog="system" width="128" height="114"/>
         <image name="dock.arrow.down.rectangle" catalog="system" width="128" height="93"/>
         <image name="dock.arrow.up.rectangle" catalog="system" width="128" height="93"/>
         <image name="dock.rectangle" catalog="system" width="128" height="93"/>
         <image name="gears" width="25" height="25"/>
+        <image name="xmark" catalog="system" width="128" height="113"/>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

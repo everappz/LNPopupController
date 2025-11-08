@@ -1,5 +1,5 @@
 //
-//  LNPopupController.h
+//  LNPopupControllerImpl.h
 //  LNPopupController
 //
 //  Created by Léo Natan on 2015-08-23.
@@ -23,11 +23,8 @@ CF_EXTERN_C_BEGIN
 
 @property (nonatomic, weak) UIView* bottomBar;
 
-@property (nonatomic, strong) LNPopupBar* popupBar;
-@property (nonatomic, strong, readonly) LNPopupBar* popupBarStorage;
-@property (nonatomic, strong, readonly) LNPopupBar* popupBarNoCreate;
-@property (nonatomic, strong) LNPopupContentView* popupContentView;
-@property (nonatomic, strong) UIScrollView* popupContentContainerView;
+@property (nonatomic, strong, readonly) LNPopupBar* popupBar;
+@property (nonatomic, strong, readonly) LNPopupContentView* popupContentView;
 
 @property (nonatomic) LNPopupPresentationState popupControllerPublicState;
 @property (nonatomic) LNPopupPresentationState popupControllerInternalState;
@@ -49,8 +46,6 @@ CF_EXTERN_C_BEGIN
 
 - (void)_setContentToState:(LNPopupPresentationState)state;
 - (void)_setContentToState:(LNPopupPresentationState)state animated:(BOOL)animated;
-
-- (void)_movePopupBarAndContentToBottomBarSuperview;
 
 - (void)presentPopupBarWithContentViewController:(UIViewController*)contentViewController openPopup:(BOOL)open animated:(BOOL)animated completion:(void(^)(void))completionBlock;
 - (void)openPopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock;
