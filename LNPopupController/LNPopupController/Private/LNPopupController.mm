@@ -1263,6 +1263,8 @@ __attribute__((objc_direct_members))
 	}
 	
 	_dismissGestureStarted = NO;
+    
+    [self _endTransitioningLock];
 }
 
 - (void)_popupBarPresentationByUserPanGestureHandler:(UIPanGestureRecognizer*)pgr
