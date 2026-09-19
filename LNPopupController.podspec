@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'LNPopupController'
-  s.version      = '4.5.11'
+  s.version      = '4.5.12'
   s.summary      = 'Popup bar like Apple Music/Podcasts.'
   s.description  = 'LNPopupController provides a popup bar and content presentation.'
   s.homepage     = 'https://github.com/LeoNatan/LNPopupController'
